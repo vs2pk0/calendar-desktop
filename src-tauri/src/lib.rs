@@ -25,7 +25,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
-        .setup(|app| {
+        .setup(|_app| {
             #[cfg(all(desktop, target_os = "macos"))]
             {
                 use tauri::tray::TrayIconBuilder;
