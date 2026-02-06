@@ -371,34 +371,6 @@
             </div>
         </div>
 
-        <!-- Bottom Tools -->
-        <div class="bottom-tools">
-            <div class="tool-item" @click="showCalendarConverter">
-                <div class="tool-icon" style="background: #ff7875">
-                    <calendar-outlined />
-                </div>
-                <span>公农历转换</span>
-            </div>
-            <div class="tool-item" @click="showHolidayList">
-                <div class="tool-icon" style="background: #ff9c6e">
-                    <gift-outlined />
-                </div>
-                <span>节日大全</span>
-            </div>
-            <div class="tool-item" @click="showDateCalculator">
-                <div class="tool-icon" style="background: #9254de">
-                    <calculator-outlined />
-                </div>
-                <span>日期计算</span>
-            </div>
-            <div class="tool-item" @click="showAllTools">
-                <div class="tool-icon custom-more">
-                    <ellipsis-outlined />
-                </div>
-                <span>全部</span>
-            </div>
-        </div>
-
         <!-- Weather City Settings Modal -->
         <a-modal
             v-model:open="weatherSettingsVisible"
@@ -1758,52 +1730,6 @@ watch(currentDateObj, () => {
 .edit-subscription-btn-container :deep(.ant-btn:hover) {
     background: #e6e8eb;
     color: #262626;
-}
-
-.bottom-tools {
-    display: flex;
-    justify-content: space-between;
-    margin-top: auto;
-    padding-top: 12px;
-    padding-bottom: 12px;
-    background: white;
-    position: sticky;
-    bottom: 0;
-    z-index: 100;
-    border-top: 1px solid #f0f0f0;
-}
-.tool-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 12px;
-    color: #595959;
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
-    flex: 1;
-}
-.tool-item:hover {
-    color: #1890ff;
-}
-.tool-item:hover .tool-icon {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-.tool-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 20px;
-    margin-bottom: 4px;
-}
-.custom-more {
-    background: #f0f0f0;
-    color: #999;
 }
 
 /* 公农历转换样式 */
