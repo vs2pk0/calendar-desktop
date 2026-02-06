@@ -14,7 +14,9 @@ const DEFAULT_SETTINGS = {
     weatherKey: '7d8e35ab2b1b5d9458b5bdaef24621d9',
     zodiacApi: 'https://v2.xxapi.cn/api/horoscope',
     zodiacKey: 'free',
-    holidayApi: 'https://timor.tech/api/holiday/year'
+    holidayApi: 'https://timor.tech/api/holiday/year',
+    showTrayTime: true,
+    trayDisplayFormat: 'M月D日 ddd HH:mm:ss - {city} {temp}°C {weather}'
 };
 
 class SettingsManager {

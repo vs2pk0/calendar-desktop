@@ -146,6 +146,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import dayjs from 'dayjs';
 import scheduleManager from './utils/scheduleManager';
 import settingsManager from './utils/settingsManager';
@@ -168,7 +169,12 @@ import {
 } from '@ant-design/icons-vue';
 import { createVNode } from 'vue';
 import RightPanel from './components/RightPanel.vue';
+import weatherManager from './utils/weatherManager';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
+import 'dayjs/locale/zh-cn';
+
+// 设置 dayjs 语言
+dayjs.locale('zh-cn');
 
 const route = useRoute();
 const router = useRouter();
@@ -294,15 +300,65 @@ function clearAllNotifs() {
 }
 
 let checkTimer = null;
+let trayTimer = null;
+
+async function updateTrayTitle() {
+    const showTray = settingsManager.get('showTrayTime');
+    const format = settingsManager.get('trayDisplayFormat') || 'M月D日 ddd HH:mm:ss';
+
+    if (!showTray) {
+        try {
+            await invoke('update_tray_title', { title: '' });
+        } catch (e) {
+            // 忽略非 macOS 平台的错误
+        }
+        return;
+    }
+
+    const now = dayjs();
+    const weather = weatherManager.get();
+
+    // 构造带转义的格式字符串，防止 dayjs 错误解析天气关键字
+    let titleFormat = format;
+    if (weather) {
+        titleFormat = titleFormat
+            .replace('{city}', `[${weather.city || ''}]`)
+            .replace('{temp}', `[${weather.temp_day || ''}]`)
+            .replace('{weather}', `[${weather.weather || ''}]`);
+    } else {
+        // 如果没有天气数据，移除相关占位符
+        titleFormat = titleFormat
+            .replace('{city}', '')
+            .replace('{temp}', '')
+            .replace('{weather}', '')
+            .replace('°C', '')
+            .trim();
+        // 移除可能剩余的多余连字符或空格
+        titleFormat = titleFormat.replace(/-\s*$/, '').replace(/^\s*-/, '').trim();
+    }
+
+    try {
+        const title = now.format(titleFormat);
+        await invoke('update_tray_title', { title: title });
+    } catch (e) {
+        // 忽略非 macOS 平台的错误
+    }
+}
+
 onMounted(() => {
     // 立即检查一次
     checkSchedules();
     // 每分钟检查一次 (30s 检查一次防止跳过分钟)
     checkTimer = setInterval(checkSchedules, 30000);
+
+    // 状态栏时间更新
+    updateTrayTitle();
+    trayTimer = setInterval(updateTrayTitle, 1000);
 });
 
 onUnmounted(() => {
     if (checkTimer) clearInterval(checkTimer);
+    if (trayTimer) clearInterval(trayTimer);
 });
 
 function handleDateSelect(date) {

@@ -1098,6 +1098,8 @@ function showDateCalculator() {
     dateCalculatorVisible.value = true;
 }
 
+import weatherManager from '../utils/weatherManager';
+
 const router = useRouter();
 
 function showAllTools() {
@@ -1174,8 +1176,11 @@ function updateCurrentDayWeather() {
             daypower: match.daypower,
             date: match.date
         };
+        // 同步到全局天气管理器
+        weatherManager.update(weatherData.value);
     } else {
         weatherData.value = null;
+        weatherManager.update(null);
     }
 }
 

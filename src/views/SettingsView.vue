@@ -9,6 +9,45 @@
 
         <div class="settings-content">
             <a-tabs v-model:active-key="activeTab" type="card">
+                <a-tab-pane key="general" tab="常规设置">
+                    <div class="settings-section">
+                        <a-form layout="vertical">
+                            <a-form-item label="系统状态栏显示">
+                                <template #extra>在 macOS 顶部状态栏实时显示当前日期、时间和天气</template>
+                                <div class="setting-item-row">
+                                    <span>显示时间与天气</span>
+                                    <a-switch v-model:checked="settingsForm.showTrayTime" @change="handleTrayToggle" />
+                                </div>
+                            </a-form-item>
+
+                            <a-form-item label="显示格式">
+                                <template #extra>
+                                    支持自定义格式。占位符：{city} 城市, {temp} 温度, {weather} 天气。 时间格式参考
+                                    dayjs (如: HH:mm:ss)。
+                                </template>
+                                <a-select
+                                    v-model:value="settingsForm.trayDisplayFormat"
+                                    @change="handleFormatChange"
+                                    placeholder="选择显示格式"
+                                    style="width: 100%"
+                                >
+                                    <a-select-option value="M月D日 ddd HH:mm:ss - {city} {temp}°C {weather}">
+                                        日期+时间+天气 (最丰富)
+                                    </a-select-option>
+                                    <a-select-option value="M月D日 ddd HH:mm:ss"> 日期+星期+时间 </a-select-option>
+                                    <a-select-option value="HH:mm:ss"> 仅时间 (分秒) </a-select-option>
+                                    <a-select-option value="{city} {temp}°C {weather}"> 仅天气信息 </a-select-option>
+                                </a-select>
+                                <a-input
+                                    v-model:value="settingsForm.trayDisplayFormat"
+                                    placeholder="或输入自定义格式内容"
+                                    style="margin-top: 12px"
+                                    @change="handleFormatInputChange"
+                                />
+                            </a-form-item>
+                        </a-form>
+                    </div>
+                </a-tab-pane>
                 <a-tab-pane key="api" tab="API 配置">
                     <div class="settings-section">
                         <a-form layout="vertical">
@@ -112,7 +151,9 @@ const settingsForm = ref({
     weatherKey: '',
     zodiacApi: '',
     zodiacKey: '',
-    holidayApi: ''
+    holidayApi: '',
+    showTrayTime: true,
+    trayDisplayFormat: ''
 });
 
 function loadSettings() {
@@ -122,6 +163,20 @@ function loadSettings() {
 function saveSettings() {
     settingsManager.setAll(settingsForm.value);
     message.success('配置已保存');
+}
+
+function handleTrayToggle(checked) {
+    settingsManager.set('showTrayTime', checked);
+    message.success(checked ? '状态栏显示已开启' : '状态栏显示已关闭');
+}
+
+function handleFormatChange(value) {
+    settingsManager.set('trayDisplayFormat', value);
+    message.success('显示格式已更新');
+}
+
+function handleFormatInputChange(e) {
+    settingsManager.set('trayDisplayFormat', e.target.value);
 }
 
 function resetSettings() {
@@ -215,6 +270,15 @@ onMounted(() => {
     margin-top: 32px;
     padding-top: 24px;
     border-top: 1px solid #f0f0f0;
+}
+
+.setting-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
 }
 
 .data-section {
