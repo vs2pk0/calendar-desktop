@@ -13,9 +13,17 @@ export const AVAILABLE_SUBSCRIPTIONS = [
         bg: '#e6f7ff'
     },
     {
+        id: 'lunar',
+        name: '农历详情',
+        desc: '农历年、月、日详情',
+        icon: 'info-circle-outlined',
+        color: '#87d068',
+        bg: '#f6ffed'
+    },
+    {
         id: 'huangli',
         name: '黄历运势',
-        desc: '每日运势，早知道',
+        desc: '每日宜忌，早知道',
         icon: 'experiment-outlined',
         color: '#fa8c16',
         bg: '#fff7e6'
@@ -35,14 +43,6 @@ export const AVAILABLE_SUBSCRIPTIONS = [
         icon: 'global-outlined',
         color: '#13c2c2',
         bg: '#e6fffb'
-    },
-    {
-        id: 'traffic',
-        name: '城市限行',
-        desc: '汽车尾号限行，限...',
-        icon: 'car-outlined',
-        color: '#f5222d',
-        bg: '#fff1f0'
     },
     {
         id: 'schedule',
@@ -69,7 +69,7 @@ class SubscriptionManager {
             }
         }
         // 默认订阅
-        return ['weather', 'worldClock', 'traffic'];
+        return ['weather', 'worldClock', 'lunar', 'huangli'];
     }
 
     _saveToStorage() {

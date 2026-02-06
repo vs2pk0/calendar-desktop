@@ -14,7 +14,7 @@
         </div>
 
         <!-- Lunar Detail Card -->
-        <div v-if="subscribedIds.includes('huangli')" class="info-card lunar-card">
+        <div v-if="subscribedIds.includes('lunar')" class="info-card lunar-card">
             <div class="lunar-date-header">农历 {{ lunarString }}</div>
             <div class="lunar-detail">
                 {{ lunarYearInfo }}
@@ -171,24 +171,6 @@
                             <div class="c-date">{{ nyDate }} {{ nyTime }}</div>
                             <div class="c-name">纽约 <span class="diff">-13小时</span></div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Traffic Restriction Card -->
-            <div v-if="subscribedIds.includes('traffic')" class="info-card traffic-card">
-                <div class="card-header">
-                    <span class="card-title">城市限行 <small>北京</small></span>
-                    <setting-outlined class="card-setting" />
-                </div>
-                <div class="traffic-content">
-                    <div class="t-item">
-                        <span class="t-label">周四 10-1</span>
-                        <span class="t-value">不限行</span>
-                    </div>
-                    <div class="t-item">
-                        <span class="t-label">周五 10-2</span>
-                        <span class="t-value">不限行</span>
                     </div>
                 </div>
             </div>

@@ -54,6 +54,8 @@
                 <div class="date-header">
                     <span class="solar-day">{{ date.day }}</span>
                 </div>
+                <span v-if="date.isHoliday" class="status-tag holiday-tag">休</span>
+                <span v-else-if="date.isWorkday" class="status-tag workday-tag">班</span>
                 <div class="lunar-day" :class="{ festival: date.festival }">
                     {{ date.festival || date.lunarDayName }}
                 </div>
@@ -125,7 +127,16 @@ async function fetchHolidays() {
         const data = await response.json();
 
         if (data.code === 0) {
-            holidayData.value = data.holiday || {};
+            // 将数据转换为按全日期 YYYY-MM-DD 索引，因为 API 返回的是按 MM-DD 索引
+            const remapped = {};
+            if (data.holiday) {
+                Object.values(data.holiday).forEach((item) => {
+                    if (item.date) {
+                        remapped[item.date] = item;
+                    }
+                });
+            }
+            holidayData.value = remapped;
         }
     } catch (error) {
         console.error('获取假期数据失败:', error);
@@ -205,7 +216,7 @@ function createDateObject(dateObj, isCurrentMonth) {
         festival: festival,
         scheduleCount: scheduleCount,
         isHoliday: holidayInfo && holidayInfo.holiday === true,
-        isWorkday: holidayInfo && holidayInfo.wage === 3 // wage为3表示调休工作日
+        isWorkday: holidayInfo && holidayInfo.holiday === false
     };
 }
 
@@ -304,6 +315,37 @@ function selectDate(date) {
     font-size: 18px;
     font-weight: 600;
     margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.status-tag {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1.2;
+    transform: scale(0.9);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.holiday-tag {
+    background-color: #f6ffed;
+    color: #52c41a;
+    border: 1px solid #b7eb8f;
+    font-weight: 500;
+}
+
+.workday-tag {
+    background-color: #fff1f0;
+    color: #ff4d4f;
+    border: 1px solid #ffccc7;
+    font-weight: 500;
 }
 
 .lunar-day {

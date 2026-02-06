@@ -42,7 +42,8 @@ import {
     GlobalOutlined,
     CarOutlined,
     LeftOutlined,
-    CalendarOutlined
+    CalendarOutlined,
+    InfoCircleOutlined
 } from '@ant-design/icons-vue';
 import subscriptionManager from '../utils/subscriptionManager';
 
@@ -56,7 +57,8 @@ const iconComponents = {
     'rocket-outlined': RocketOutlined,
     'global-outlined': GlobalOutlined,
     'car-outlined': CarOutlined,
-    'calendar-outlined': CalendarOutlined
+    'calendar-outlined': CalendarOutlined,
+    'info-circle-outlined': InfoCircleOutlined
 };
 
 function loadItems() {
