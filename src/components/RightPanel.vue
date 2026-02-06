@@ -371,6 +371,34 @@
             </div>
         </div>
 
+        <!-- Bottom Tools -->
+        <div class="bottom-tools">
+            <div class="tool-item" @click="showCalendarConverter">
+                <div class="tool-icon" style="background: #ff7875">
+                    <calendar-outlined />
+                </div>
+                <span>公农历转换</span>
+            </div>
+            <div class="tool-item" @click="showHolidayList">
+                <div class="tool-icon" style="background: #ff9c6e">
+                    <gift-outlined />
+                </div>
+                <span>节日大全</span>
+            </div>
+            <div class="tool-item" @click="showDateCalculator">
+                <div class="tool-icon" style="background: #9254de">
+                    <calculator-outlined />
+                </div>
+                <span>日期计算</span>
+            </div>
+            <div class="tool-item" @click="showAllTools">
+                <div class="tool-icon custom-more">
+                    <ellipsis-outlined />
+                </div>
+                <span>全部</span>
+            </div>
+        </div>
+
         <!-- Weather City Settings Modal -->
         <a-modal
             v-model:open="weatherSettingsVisible"
@@ -762,7 +790,8 @@ import {
     DeleteOutlined,
     EnvironmentOutlined,
     ExclamationCircleOutlined,
-    SettingOutlined
+    SettingOutlined,
+    EllipsisOutlined
 } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import ScheduleModal from './ScheduleModal.vue';
@@ -780,6 +809,16 @@ import subscriptionManager from '../utils/subscriptionManager';
 
 // 订阅数据
 const subscribedIds = subscriptionManager.subscribedIds;
+
+// 工具栏可见性控制
+const allToolsVisible = ref(false);
+const calendarConverterVisible = ref(false);
+const holidayListVisible = ref(false);
+const dateCalculatorVisible = ref(false);
+const countdownVisible = ref(false);
+const perpetualCalendarVisible = ref(false);
+const luckyDayVisible = ref(false);
+const scheduleModalVisible = ref(false);
 
 // 星座数据
 const zodiacLoading = ref(false);
@@ -921,17 +960,9 @@ const nyDate = computed(() => now.value.add(-13, 'hour').format('M月D日'));
 // 假期数据
 const holidayData = ref({});
 
-// 模态框状态
-const calendarConverterVisible = ref(false);
-const holidayListVisible = ref(false);
-const dateCalculatorVisible = ref(false);
+// 模态框状态已移至顶部
 
-const countdownVisible = ref(false);
-const perpetualCalendarVisible = ref(false);
-const luckyDayVisible = ref(false);
-
-// 日程管理相关
-const scheduleModalVisible = ref(false);
+// 日程管理相关已移至顶部
 const todaySchedules = ref([]);
 const editingSchedule = ref(null);
 
@@ -1084,20 +1115,16 @@ const solarTerms = ref([
     { name: '大寒', date: '1月20-21日' }
 ]);
 
-// 工具按钮点击事件
 function showCalendarConverter() {
     calendarConverterVisible.value = true;
-    allToolsVisible.value = false;
 }
 
 function showHolidayList() {
     holidayListVisible.value = true;
-    allToolsVisible.value = false;
 }
 
 function showDateCalculator() {
     dateCalculatorVisible.value = true;
-    allToolsVisible.value = false;
 }
 
 const router = useRouter();
@@ -1269,7 +1296,10 @@ function getScheduleTypeName(type) {
 
 // 暴露方法给父组件
 defineExpose({
-    showAllTools
+    showAllTools,
+    showCalendarConverter,
+    showHolidayList,
+    showDateCalculator
 });
 
 // 监听日期变化，更新天气和日程
@@ -1600,10 +1630,9 @@ watch(currentDateObj, () => {
     font-size: 13px;
     color: #595959;
     line-height: 1.6;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    /* 确保文本能正常换行显示 */
+    white-space: pre-wrap;
+    text-align: justify;
 }
 .zodiac-empty {
     text-align: center;
@@ -1645,17 +1674,8 @@ watch(currentDateObj, () => {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding-right: 4px;
 }
-.zodiac-year-content::-webkit-scrollbar {
-    width: 4px;
-}
-.zodiac-year-content::-webkit-scrollbar-thumb {
-    background: #d9d9d9;
-    border-radius: 2px;
-}
+
 .year-section {
     background: rgba(255, 255, 255, 0.6);
     padding: 10px;
@@ -1743,19 +1763,32 @@ watch(currentDateObj, () => {
 .bottom-tools {
     display: flex;
     justify-content: space-between;
-    margin-top: auto; /* push to bottom */
+    margin-top: auto;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background: white;
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    border-top: 1px solid #f0f0f0;
 }
 .tool-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     font-size: 12px;
-    color: #333;
+    color: #595959;
     cursor: pointer;
     transition: all 0.2s;
+    user-select: none;
+    flex: 1;
 }
 .tool-item:hover {
+    color: #1890ff;
+}
+.tool-item:hover .tool-icon {
     transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 .tool-icon {
     width: 40px;
