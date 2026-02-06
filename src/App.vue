@@ -300,17 +300,20 @@ function clearAllNotifs() {
 }
 
 let checkTimer = null;
-let trayTimer = null;
+let lastTrayTitle = '';
 
 async function updateTrayTitle() {
     const showTray = settingsManager.get('showTrayTime');
     const format = settingsManager.get('trayDisplayFormat') || 'M月D日 ddd HH:mm:ss';
 
     if (!showTray) {
-        try {
-            await invoke('update_tray_title', { title: '' });
-        } catch (e) {
-            // 忽略非 macOS 平台的错误
+        if (lastTrayTitle !== '') {
+            try {
+                await invoke('update_tray_title', { title: '' });
+                lastTrayTitle = '';
+            } catch (e) {
+                /* 忽略 */
+            }
         }
         return;
     }
@@ -318,7 +321,6 @@ async function updateTrayTitle() {
     const now = dayjs();
     const weather = weatherManager.get();
 
-    // 构造带转义的格式字符串，防止 dayjs 错误解析天气关键字
     let titleFormat = format;
     if (weather) {
         titleFormat = titleFormat
@@ -326,20 +328,22 @@ async function updateTrayTitle() {
             .replace('{temp}', `[${weather.temp_day || ''}]`)
             .replace('{weather}', `[${weather.weather || ''}]`);
     } else {
-        // 如果没有天气数据，移除相关占位符
         titleFormat = titleFormat
             .replace('{city}', '')
             .replace('{temp}', '')
             .replace('{weather}', '')
             .replace('°C', '')
             .trim();
-        // 移除可能剩余的多余连字符或空格
         titleFormat = titleFormat.replace(/-\s*$/, '').replace(/^\s*-/, '').trim();
     }
 
     try {
         const title = now.format(titleFormat);
-        await invoke('update_tray_title', { title: title });
+        // 只有当标题真正改变时才调用后端，减少 IPC 开销
+        if (title !== lastTrayTitle) {
+            await invoke('update_tray_title', { title: title });
+            lastTrayTitle = title;
+        }
     } catch (e) {
         // 忽略非 macOS 平台的错误
     }
@@ -353,7 +357,8 @@ onMounted(() => {
 
     // 状态栏时间更新
     updateTrayTitle();
-    trayTimer = setInterval(updateTrayTitle, 1000);
+    // 提高到 500ms 刷新一次，确保秒级更新平滑（防止因为 1000ms 漂移导致跳秒）
+    trayTimer = setInterval(updateTrayTitle, 500);
 });
 
 onUnmounted(() => {
