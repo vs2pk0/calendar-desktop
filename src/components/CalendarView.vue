@@ -3,29 +3,77 @@
         <!-- Toolbar -->
         <div class="calendar-header">
             <div class="left-controls">
-                <a-radio-group v-model:value="viewMode" button-style="solid">
-                    <a-radio-button value="month">{{ currentYearMonth }}</a-radio-button>
-                    <a-radio-button value="year">假期安排</a-radio-button>
-                </a-radio-group>
+                <a-popover
+                    v-model:open="monthPickerVisible"
+                    trigger="click"
+                    placement="bottomLeft"
+                    :overlayClassName="'month-picker-popover'"
+                >
+                    <template #content>
+                        <div class="month-picker-panel">
+                            <div class="month-picker-header">
+                                <a-button type="text" size="small" @click="changeYear(-1)">
+                                    <template #icon><double-left-outlined /></template>
+                                </a-button>
+                                <span class="current-year">{{ pickerYear }}</span>
+                                <a-button type="text" size="small" @click="changeYear(1)">
+                                    <template #icon><double-right-outlined /></template>
+                                </a-button>
+                            </div>
+                            <div class="month-grid">
+                                <div
+                                    v-for="m in 12"
+                                    :key="m"
+                                    class="month-item"
+                                    :class="{
+                                        active: pickerYear === currentDate.year() && m - 1 === currentDate.month()
+                                    }"
+                                    @click="selectMonth(m - 1)"
+                                >
+                                    {{ monthNames[m - 1] }}
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="nav-tag year-month-tag">
+                        {{ currentYearMonth }}
+                    </div>
+                </a-popover>
+
+                <a-dropdown trigger="click">
+                    <div class="nav-tag holiday-tag">假期安排</div>
+                    <template #overlay>
+                        <a-menu @click="handleHolidayJump">
+                            <a-menu-item v-for="h in holidayList" :key="h.date">
+                                {{ h.name }}
+                            </a-menu-item>
+                        </a-menu>
+                    </template>
+                </a-dropdown>
             </div>
 
             <div class="center-controls"></div>
 
             <div class="right-controls">
-                <a-button shape="circle" @click="prevMonth">
-                    <template #icon><LeftOutlined /></template>
-                </a-button>
-                <a-button shape="circle" @click="nextMonth" style="margin: 0 8px">
-                    <template #icon><RightOutlined /></template>
-                </a-button>
-                <a-button @click="goToday" style="margin-right: 8px">今日</a-button>
-                <a-button type="text">
+                <a-button type="text" class="today-btn" @click="goToday">今日</a-button>
+                <div class="nav-arrows">
+                    <a-button type="text" size="small" @click="prevMonth">
+                        <template #icon><LeftOutlined /></template>
+                    </a-button>
+                    <a-button type="text" size="small" @click="nextMonth">
+                        <template #icon><RightOutlined /></template>
+                    </a-button>
+                </div>
+
+                <a-divider type="vertical" />
+
+                <a-button type="text" class="action-icon">
                     <FilterOutlined />
                 </a-button>
-                <a-button type="text">
+                <a-button type="text" class="action-icon">
                     <CalendarOutlined />
                 </a-button>
-                <a-button type="primary" shape="circle">
+                <a-button type="primary" shape="circle" class="add-btn">
                     <template #icon><PlusOutlined /></template>
                 </a-button>
             </div>
@@ -74,7 +122,15 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import dayjs from 'dayjs';
 import { Lunar } from 'lunar-javascript';
-import { LeftOutlined, RightOutlined, FilterOutlined, CalendarOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import {
+    LeftOutlined,
+    RightOutlined,
+    FilterOutlined,
+    CalendarOutlined,
+    PlusOutlined,
+    DoubleLeftOutlined,
+    DoubleRightOutlined
+} from '@ant-design/icons-vue';
 import scheduleManager from '../utils/scheduleManager';
 import settingsManager from '../utils/settingsManager';
 import { fetch } from '@tauri-apps/plugin-http';
@@ -87,6 +143,45 @@ const selectedDate = ref(props.modelValue ? dayjs(props.modelValue) : dayjs());
 const viewMode = ref('month');
 const holidayData = ref({});
 const monthSchedules = ref([]);
+
+// 月份选择器状态
+const monthPickerVisible = ref(false);
+const pickerYear = ref(dayjs().year());
+const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+
+function changeYear(step) {
+    pickerYear.value += step;
+}
+
+function selectMonth(month) {
+    currentDate.value = dayjs().year(pickerYear.value).month(month);
+    monthPickerVisible.value = false;
+}
+
+// 假期跳转列表
+const holidayList = computed(() => {
+    // 找出当年的主要节假日（去重并排序）
+    const list = [];
+    const seen = new Set();
+    Object.values(holidayData.value).forEach((h) => {
+        if (h.holiday && h.name && !seen.has(h.name)) {
+            list.push({ name: h.name, date: h.date });
+            seen.add(h.name);
+        }
+    });
+    // 按日期排序
+    return list.sort((a, b) => a.date.localeCompare(b.date));
+});
+
+function handleHolidayJump({ key }) {
+    if (key) {
+        currentDate.value = dayjs(key);
+        selectedDate.value = dayjs(key);
+        // 获取完整的日期对象并选中
+        const dObj = createDateObject(dayjs(key), true);
+        emit('select', dObj);
+    }
+}
 
 const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
@@ -152,7 +247,8 @@ onMounted(async () => {
 });
 
 // 监听日期变化，重新加载日程和假期
-watch(currentDate, async () => {
+watch(currentDate, async (newVal) => {
+    pickerYear.value = newVal.year(); // 同步选择器年份
     await fetchHolidays();
     await loadMonthSchedules();
 });
@@ -258,7 +354,120 @@ function selectDate(date) {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 24px;
+    padding: 0 4px;
+}
+
+.left-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.nav-tag {
+    padding: 4px 12px;
+    background: #f0f5ff;
+    color: #1d39c4;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.nav-tag:hover {
+    background: #e6f7ff;
+    border-color: #91d5ff;
+}
+
+.right-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.today-btn {
+    color: #262626;
+    background: #f0f0f0;
+    border-radius: 4px;
+    padding: 0 16px;
+    height: 32px;
+}
+
+.nav-arrows {
+    display: flex;
+    background: #f0f0f0;
+    border-radius: 4px;
+    padding: 2px;
+    margin: 0 8px;
+}
+
+.nav-arrows .ant-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-icon {
+    font-size: 18px;
+    color: #595959;
+    padding: 4px;
+    height: auto;
+}
+
+.add-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    margin-left: 8px;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.35);
+}
+
+/* Month Picker Styles */
+.month-picker-panel {
+    padding: 8px;
+    width: 240px;
+}
+
+.month-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 8px;
+}
+
+.current-year {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.month-item {
+    text-align: center;
+    padding: 12px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.month-item:hover {
+    background: #f5f5f5;
+    color: #1890ff;
+}
+
+.month-item.active {
+    background: #1890ff;
+    color: white;
 }
 
 .weekday-header {
