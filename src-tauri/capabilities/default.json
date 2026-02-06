@@ -15,6 +15,20 @@
     "sql:default",
     "sql:allow-execute",
     "sql:allow-select",
-    "http:allow-fetch"
+    "http:allow-fetch",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://restapi.amap.com/*"
+        },
+        {
+          "url": "https://api.vvhan.com/*"
+        },
+        {
+          "url": "https://timor.tech/*"
+        }
+      ]
+    }
   ]
 }

@@ -30,7 +30,9 @@
                         >
                             <star-outlined style="margin-right: 4px" /> 订阅
                         </div>
-                        <div class="nav-item" @click="openTools"><tool-outlined style="margin-right: 4px" /> 工具</div>
+                        <div class="nav-item" :class="{ active: activeTab === 'tools' }" @click="openTools">
+                            <tool-outlined style="margin-right: 4px" /> 工具
+                        </div>
                     </div>
                 </div>
                 <div class="header-right">
@@ -76,12 +78,12 @@
 
             <!-- Content -->
             <main class="app-content">
-                <div class="main-view-area">
+                <div class="main-view-area" :class="{ 'full-width': route.path === '/tools' }">
                     <router-view v-slot="{ Component }">
                         <component :is="Component" ref="viewRef" @select="handleDateSelect" />
                     </router-view>
                 </div>
-                <div class="side-panel-area">
+                <div v-if="route.path !== '/tools'" class="side-panel-area">
                     <RightPanel
                         ref="sidePanelRef"
                         :selectedDate="selectedDate"
@@ -157,6 +159,7 @@ const router = useRouter();
 // 计算当前激活的标签
 const activeTab = computed(() => {
     if (route.path === '/subscription') return 'subscription';
+    if (route.path === '/tools') return 'tools';
     return 'calendar';
 });
 
@@ -276,9 +279,7 @@ function refreshCalendar() {
 }
 
 function openTools() {
-    if (sidePanelRef.value) {
-        sidePanelRef.value.showAllTools();
-    }
+    router.push('/tools');
 }
 
 // 窗口控制函数
@@ -560,6 +561,10 @@ async function toggleMaximize() {
     flex-direction: column;
     overflow: hidden;
     background-color: transparent;
+}
+
+.main-view-area.full-width {
+    flex: 1;
 }
 
 .side-panel-area {

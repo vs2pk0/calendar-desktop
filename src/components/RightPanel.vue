@@ -96,29 +96,41 @@
         <!-- Subscribed Content Cards -->
         <div class="subscribed-cards">
             <!-- Weather Card -->
-            <div v-if="subscribedIds.includes('weather')" class="info-card weather-card">
+            <div v-if="subscribedIds.includes('weather') && weatherData" class="info-card weather-card">
                 <div class="card-header">
-                    <span class="card-title">天气预报</span>
+                    <span class="card-title">天气预报 - {{ weatherData.city }}</span>
                     <setting-outlined class="card-setting" @click="showWeatherSettings" />
                 </div>
                 <div class="weather-main">
                     <div class="weather-icon">
-                        <cloud-filled style="font-size: 48px; color: #69c0ff" />
+                        <cloud-filled
+                            v-if="weatherData.weather.includes('云') || weatherData.weather.includes('阴')"
+                            style="font-size: 48px; color: #69c0ff"
+                        />
+                        <star-outlined
+                            v-else-if="weatherData.weather.includes('晴')"
+                            style="font-size: 48px; color: #ffad14"
+                        />
+                        <span v-else style="font-size: 48px">🌧️</span>
                     </div>
                     <div class="weather-temp">
-                        14°C
-                        <span class="weather-air">空气良 83</span>
+                        {{ weatherData.temp_day }}°C
+                        <span class="weather-desc-tag">{{ weatherData.weather }}</span>
                     </div>
                 </div>
-                <div class="weather-detail-text">3°/14°C 阴 | 东北风2级 | 湿度 46%</div>
-                <div class="weather-forecast">
-                    <div class="forecast-item">
-                        <cloud-filled /> -2° / 9°C <br />
-                        <span class="f-day">明天 | 雨夹雪转阴</span>
-                    </div>
-                    <div class="forecast-item">
-                        <cloud-filled /> -3° / 4°C <br />
-                        <span class="f-day">后天 | 多云转晴</span>
+                <div class="weather-detail-text">
+                    {{ weatherData.temp_night }}°/{{ weatherData.temp_day }}°C | {{ weatherData.daywind }}风{{
+                        weatherData.daypower
+                    }}级
+                </div>
+                <div
+                    v-if="weatherForecasts.length > 0 && currentDateObj.isSame(dayjs(), 'day')"
+                    class="weather-forecast"
+                >
+                    <div v-for="(fc, index) in weatherForecasts.slice(1, 4)" :key="index" class="forecast-item">
+                        <span>{{ fc.dayweather }}</span
+                        ><br />
+                        <span class="f-day">{{ dayjs(fc.date).format('MM-DD') }}</span>
                     </div>
                 </div>
             </div>
@@ -468,61 +480,6 @@
             </div>
         </a-modal>
 
-        <!-- 全部工具弹窗 -->
-        <a-modal
-            v-model:open="allToolsVisible"
-            title="全部工具"
-            width="600px"
-            ok-text="确定"
-            cancel-text="取消"
-            @ok="allToolsVisible = false"
-        >
-            <div class="all-tools-grid">
-                <div class="tool-card" @click="showCalendarConverter">
-                    <div class="tool-card-icon" style="background: #ff7875">
-                        <calendar-outlined style="font-size: 24px" />
-                    </div>
-                    <div class="tool-card-title">公农历转换</div>
-                    <div class="tool-card-desc">公历农历互转</div>
-                </div>
-                <div class="tool-card" @click="showHolidayList">
-                    <div class="tool-card-icon" style="background: #ff9c6e">
-                        <gift-outlined style="font-size: 24px" />
-                    </div>
-                    <div class="tool-card-title">节日大全</div>
-                    <div class="tool-card-desc">查看所有节日</div>
-                </div>
-                <div class="tool-card" @click="showDateCalculator">
-                    <div class="tool-card-icon" style="background: #9254de">
-                        <calculator-outlined style="font-size: 24px" />
-                    </div>
-                    <div class="tool-card-title">日期计算</div>
-                    <div class="tool-card-desc">计算日期差异</div>
-                </div>
-                <div class="tool-card" @click="showCountdown">
-                    <div class="tool-card-icon" style="background: #40a9ff">
-                        <clock-circle-outlined style="font-size: 24px" />
-                    </div>
-                    <div class="tool-card-title">倒数日</div>
-                    <div class="tool-card-desc">重要日期倒计时</div>
-                </div>
-                <div class="tool-card" @click="showPerpetualCalendar">
-                    <div class="tool-card-icon" style="background: #73d13d">
-                        <calendar-two-tone style="font-size: 24px" />
-                    </div>
-                    <div class="tool-card-title">万年历</div>
-                    <div class="tool-card-desc">查询历史日期</div>
-                </div>
-                <div class="tool-card" @click="showLuckyDay">
-                    <div class="tool-card-icon" style="background: #ffd666">
-                        <star-outlined style="font-size: 24px" />
-                    </div>
-                    <div class="tool-card-title">吉日查询</div>
-                    <div class="tool-card-desc">黄道吉日查询</div>
-                </div>
-            </div>
-        </a-modal>
-
         <!-- 倒数日弹窗 -->
         <a-modal
             v-model:open="countdownVisible"
@@ -727,6 +684,7 @@ import {
     ExclamationCircleOutlined,
     SettingOutlined
 } from '@ant-design/icons-vue';
+import { useRouter } from 'vue-router';
 import ScheduleModal from './ScheduleModal.vue';
 import scheduleManager from '../utils/scheduleManager';
 
@@ -780,43 +738,45 @@ async function fetchZodiac() {
     }
 }
 
-// 天气数据
-const weatherData = ref(null);
+const weatherData = ref(null); // 存储当前选中日期的天气
+const weatherForecasts = ref([]); // 存储获取到的预告数据
 const weatherLoading = ref(false);
 const weatherSettingsVisible = ref(false);
+const AMAP_KEY = '7d8e35ab2b1b5d9458b5bdaef24621d9';
+
 const weatherCityAdcode = ref(
     (() => {
         const saved = localStorage.getItem('weather_adcode');
-        // 中国天气网编码通常为9位，旧的高德编码为6位
-        return saved && saved.length === 9 ? saved : '101010100';
+        // 高德地图编码为6位
+        return saved && saved.length === 6 ? saved : '110000'; // 默认北京
     })()
 );
 const weatherCityName = ref(localStorage.getItem('weather_city_name') || '北京');
 
 const majorCities = [
-    { name: '北京', adcode: '101010100' },
-    { name: '上海', adcode: '101020100' },
-    { name: '广州', adcode: '101280101' },
-    { name: '深圳', adcode: '101280601' },
-    { name: '杭州', adcode: '101210101' },
-    { name: '成都', adcode: '101270101' },
-    { name: '武汉', adcode: '101200101' },
-    { name: '西安', adcode: '101110101' },
-    { name: '南京', adcode: '101190101' },
-    { name: '浦口', adcode: '101190107' },
-    { name: '重庆', adcode: '101040100' },
-    { name: '苏州', adcode: '101190401' },
-    { name: '天津', adcode: '101030100' },
-    { name: '郑州', adcode: '101180101' },
-    { name: '长沙', adcode: '101250101' },
-    { name: '福州', adcode: '101230101' },
-    { name: '沈阳', adcode: '101070101' },
-    { name: '哈尔滨', adcode: '101050101' },
-    { name: '济南', adcode: '101120101' },
-    { name: '青岛', adcode: '101120201' },
-    { name: '大连', adcode: '101070201' },
-    { name: '宁波', adcode: '101210401' },
-    { name: '厦门', adcode: '101230201' }
+    { name: '北京', adcode: '110000' },
+    { name: '上海', adcode: '310000' },
+    { name: '广州', adcode: '440100' },
+    { name: '深圳', adcode: '440300' },
+    { name: '杭州', adcode: '330100' },
+    { name: '成都', adcode: '510100' },
+    { name: '武汉', adcode: '420100' },
+    { name: '西安', adcode: '610100' },
+    { name: '南京', adcode: '320100' },
+    { name: '浦口', adcode: '320111' },
+    { name: '重庆', adcode: '500000' },
+    { name: '苏州', adcode: '320500' },
+    { name: '天津', adcode: '120000' },
+    { name: '郑州', adcode: '410100' },
+    { name: '长沙', adcode: '430100' },
+    { name: '福州', adcode: '350100' },
+    { name: '沈阳', adcode: '210100' },
+    { name: '哈尔滨', adcode: '230100' },
+    { name: '济南', adcode: '370100' },
+    { name: '青岛', adcode: '370200' },
+    { name: '大连', adcode: '210200' },
+    { name: '宁波', adcode: '330200' },
+    { name: '厦门', adcode: '350200' }
 ];
 
 function showWeatherSettings() {
@@ -864,7 +824,7 @@ const holidayData = ref({});
 const calendarConverterVisible = ref(false);
 const holidayListVisible = ref(false);
 const dateCalculatorVisible = ref(false);
-const allToolsVisible = ref(false);
+
 const countdownVisible = ref(false);
 const perpetualCalendarVisible = ref(false);
 const luckyDayVisible = ref(false);
@@ -1039,8 +999,10 @@ function showDateCalculator() {
     allToolsVisible.value = false;
 }
 
+const router = useRouter();
+
 function showAllTools() {
-    allToolsVisible.value = true;
+    router.push('/tools');
 }
 
 // 农历转换辅助函数
@@ -1065,88 +1027,61 @@ function getLunarFestival(date) {
     return festivals.length > 0 ? festivals.join('、') : null;
 }
 
-// 获取天气数据（使用中国天气网天气接口）
+// 获取天气数据（使用高德地图天气接口）
 async function fetchWeather() {
     if (!subscriptionManager.isSubscribed('weather')) return;
     try {
         weatherLoading.value = true;
         const code = weatherCityAdcode.value;
-        const timestamp = Date.now();
 
-        // 1. 获取实况天气 (SK)
-        const skRes = await fetch(`https://d1.weather.com.cn/sk_2d/${code}.html?_=${timestamp}`, {
-            method: 'GET',
-            headers: {
-                Referer: 'https://e.weather.com.cn/'
+        // 获取预报数据 (forecast)
+        const res = await fetch(
+            `https://restapi.amap.com/v3/weather/weatherInfo?city=${code}&key=${AMAP_KEY}&extensions=all`,
+            {
+                method: 'GET'
             }
-        });
-        const skText = await skRes.text();
-        // 解析格式：var dataSK = {...};
-        const skData = JSON.parse(skText.replace(/^var\s+\w+\s*=\s*/, '').replace(/;?$/, ''));
+        );
+        const data = await res.json();
 
-        // 2. 获取预报数据 (40d)
-        const fcRes = await fetch(`https://d1.weather.com.cn/wap_40d/${code}.html?_=${timestamp}`, {
-            method: 'GET',
-            headers: {
-                Referer: 'https://e.weather.com.cn/'
-            }
-        });
-        const fcText = await fcRes.text();
-        // 解析格式：var fc40 = [...];
-        const fcData = JSON.parse(fcText.replace(/^var\s+\w+\s*=\s*/, '').replace(/;?$/, ''));
-
-        // 转换数据格式以适配现有 UI
-        weatherData.value = {
-            city: skData.cityname,
-            weather: skData.weather,
-            temperature: skData.temp,
-            temperature_float: skData.temp,
-            winddirection: skData.WD,
-            windpower: skData.WS,
-            humidity: skData.SD,
-            reporttime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-            forecasts: fcData.slice(1, 3).map((item) => ({
-                date: dayjs(item['009'], 'YYYYMMDD').format('YYYY-MM-DD'),
-                dayweather: getWeatherByCode(item['001']),
-                nightweather: getWeatherByCode(item['002']),
-                daytemp: item['003'],
-                nighttemp: item['004']
-            }))
-        };
+        if (data.status === '1' && data.forecasts && data.forecasts.length > 0) {
+            weatherForecasts.value = data.forecasts[0].casts;
+            updateCurrentDayWeather();
+        } else {
+            weatherForecasts.value = [];
+            weatherData.value = null;
+        }
     } catch (error) {
         console.error('Failed to fetch weather data:', error);
+        weatherData.value = null;
     } finally {
         weatherLoading.value = false;
     }
 }
 
-// 辅助函数：根据天气代码获取描述
-function getWeatherByCode(code) {
-    const codeMap = {
-        '00': '晴',
-        '01': '多云',
-        '02': '阴',
-        '03': '阵雨',
-        '04': '雷阵雨',
-        '05': '雷阵雨伴有冰雹',
-        '06': '雨夹雪',
-        '07': '小雨',
-        '08': '中雨',
-        '09': '大雨',
-        10: '暴雨',
-        13: '阵雪',
-        14: '小雪',
-        15: '中雪',
-        16: '大雪',
-        17: '暴雪',
-        18: '雾',
-        19: '冻雨',
-        20: '沙尘暴',
-        31: '霾',
-        53: '霾'
-    };
-    return codeMap[code] || '未知';
+// 根据选中的日期更新显示的天气
+function updateCurrentDayWeather() {
+    const selectedDateStr = currentDateObj.value.format('YYYY-MM-DD');
+    const match = weatherForecasts.value.find((f) => f.date === selectedDateStr);
+
+    if (match) {
+        weatherData.value = {
+            city: weatherCityName.value,
+            weather:
+                match.dayweather === match.nightweather
+                    ? match.dayweather
+                    : `${match.dayweather}转${match.nightweather}`,
+            temp_day: match.daytemp,
+            temp_night: match.nighttemp,
+            daywind: match.daywind,
+            daypower: match.daypower,
+            date: match.date
+        };
+    } else {
+        weatherData.value = null;
+    }
 }
+
+// 移除旧的根据代码获取天气的辅助函数，高德直接返回文字
 
 // 获取假期数据
 async function fetchHolidays() {
@@ -1238,7 +1173,12 @@ defineExpose({
 
 // 监听日期变化，更新天气和日程
 watch(currentDateObj, () => {
-    fetchWeather();
+    // 日期变化时，由于高德预报包含了未来四天，我们先尝试从缓存更新，如果没匹配到再看是否需要重新抓取
+    // 这里简单起见，每次日期变化都检查一下，并尝试抓取（如果今天变了）
+    updateCurrentDayWeather();
+    if (!weatherData.value) {
+        fetchWeather();
+    }
     loadTodaySchedules();
 });
 </script>
@@ -1337,17 +1277,16 @@ watch(currentDateObj, () => {
 .weather-temp {
     font-size: 32px;
     font-weight: 300;
-    position: relative;
+    position: relative; /* 改为 relative 以支持内部标签 */
 }
-.weather-desc {
+.weather-desc-tag {
     font-size: 12px;
     background: #faad14;
     color: white;
     padding: 2px 6px;
     border-radius: 4px;
-    position: absolute;
-    top: 0;
-    right: -50px;
+    margin-left: 8px;
+    vertical-align: middle;
 }
 .weather-detail-text {
     margin-top: 8px;
@@ -1385,6 +1324,7 @@ watch(currentDateObj, () => {
     color: #1890ff;
 }
 
+/* 保持 weather-air 作为兼容或备用 */
 .weather-air {
     font-size: 12px;
     background: #faad14;

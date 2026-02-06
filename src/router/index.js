@@ -9,6 +9,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import SubscriptionView from '../views/SubscriptionView.vue';
+import ToolsView from '../views/ToolsView.vue';
 
 const routes = [
     {
@@ -20,6 +21,11 @@ const routes = [
         path: '/subscription',
         name: 'subscription',
         component: SubscriptionView
+    },
+    {
+        path: '/tools',
+        name: 'tools',
+        component: ToolsView
     }
 ];
 
