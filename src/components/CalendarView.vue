@@ -76,6 +76,8 @@ import dayjs from 'dayjs';
 import { Lunar } from 'lunar-javascript';
 import { LeftOutlined, RightOutlined, FilterOutlined, CalendarOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import scheduleManager from '../utils/scheduleManager';
+import settingsManager from '../utils/settingsManager';
+import { fetch } from '@tauri-apps/plugin-http';
 
 const props = defineProps(['modelValue']);
 const emit = defineEmits(['update:modelValue', 'select']);
@@ -123,7 +125,8 @@ const currentYearMonth = computed(() => {
 async function fetchHolidays() {
     try {
         const year = currentDate.value.year();
-        const response = await fetch(`https://timor.tech/api/holiday/year/${year}`);
+        const holidayApi = settingsManager.get('holidayApi');
+        const response = await fetch(`${holidayApi}/${year}`);
         const data = await response.json();
 
         if (data.code === 0) {

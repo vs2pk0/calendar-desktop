@@ -760,6 +760,7 @@ const emit = defineEmits(['refresh-calendar']); // 添加事件以刷新日历
 import { Modal, message } from 'ant-design-vue';
 import { fetch } from '@tauri-apps/plugin-http';
 import subscriptionManager from '../utils/subscriptionManager';
+import settingsManager from '../utils/settingsManager';
 
 // 订阅数据
 const subscribedIds = subscriptionManager.subscribedIds;
@@ -781,7 +782,7 @@ const selectedZodiac = ref(localStorage.getItem('selected_zodiac') || '白羊座
 const zodiacType = ref(localStorage.getItem('zodiac_type') || 'today');
 
 // 聚合数据API Key
-const JUHE_ZODIAC_KEY = '63553bcad1016ac89a4a60383b2c2bad';
+// JUHE_ZODIAC_KEY 已经移至 settingsManager
 
 const zodiacs = [
     { name: '白羊座', value: '白羊座' },
@@ -813,8 +814,10 @@ async function fetchZodiac() {
         localStorage.setItem('selected_zodiac', selectedZodiac.value);
         localStorage.setItem('zodiac_type', zodiacType.value);
 
-        // 使用聚合数据星座运势API
-        const url = `http://web.juhe.cn/constellation/getAll?key=${JUHE_ZODIAC_KEY}&consName=${encodeURIComponent(selectedZodiac.value)}&type=${zodiacType.value}`;
+        // 使用设置中的地址和 Key
+        const zodiacApi = settingsManager.get('zodiacApi');
+        const zodiacKey = settingsManager.get('zodiacKey');
+        const url = `${zodiacApi}?key=${zodiacKey}&consName=${encodeURIComponent(selectedZodiac.value)}&type=${zodiacType.value}`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -836,7 +839,7 @@ const weatherData = ref(null); // 存储当前选中日期的天气
 const weatherForecasts = ref([]); // 存储获取到的预告数据
 const weatherLoading = ref(false);
 const weatherSettingsVisible = ref(false);
-const AMAP_KEY = '7d8e35ab2b1b5d9458b5bdaef24621d9';
+// AMAP_KEY 已经移至 settingsManager
 
 const weatherCityAdcode = ref(
     (() => {
@@ -994,8 +997,20 @@ const currentDateObj = computed(() => {
 
 const dateSummary = computed(() => {
     const d = currentDateObj.value;
-    const isToday = d.isSame(dayjs(), 'day');
-    return `${d.year()}年第${d.week()}周 第${d.dayOfYear()}天 ${isToday ? '今天' : ''}`;
+    const today = dayjs().startOf('day');
+    const selected = d.startOf('day');
+    const diff = selected.diff(today, 'day');
+
+    let relativeStr = '';
+    if (diff === 0) {
+        relativeStr = '今天';
+    } else if (diff > 0) {
+        relativeStr = `${diff}天后`;
+    } else {
+        relativeStr = `${Math.abs(diff)}天前`;
+    }
+
+    return `${d.year()}年第${d.week()}周 第${d.dayOfYear()}天 ${relativeStr}`;
 });
 
 const lunarObj = computed(() => {
@@ -1115,14 +1130,13 @@ async function fetchWeather() {
     try {
         weatherLoading.value = true;
         const code = weatherCityAdcode.value;
+        const weatherApi = settingsManager.get('weatherApi');
+        const weatherKey = settingsManager.get('weatherKey');
 
         // 获取预报数据 (forecast)
-        const res = await fetch(
-            `https://restapi.amap.com/v3/weather/weatherInfo?city=${code}&key=${AMAP_KEY}&extensions=all`,
-            {
-                method: 'GET'
-            }
-        );
+        const res = await fetch(`${weatherApi}?city=${code}&key=${weatherKey}&extensions=all`, {
+            method: 'GET'
+        });
         const data = await res.json();
 
         if (data.status === '1' && data.forecasts && data.forecasts.length > 0) {
@@ -1169,7 +1183,8 @@ function updateCurrentDayWeather() {
 async function fetchHolidays() {
     try {
         const year = dayjs().year();
-        const response = await fetch(`https://timor.tech/api/holiday/year/${year}`);
+        const holidayApi = settingsManager.get('holidayApi');
+        const response = await fetch(`${holidayApi}/${year}`);
         const data = await response.json();
 
         if (data.code === 0) {

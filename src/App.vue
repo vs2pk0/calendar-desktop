@@ -69,16 +69,22 @@
                             </div>
                         </template>
                         <a-badge :count="unreadCount" :overflow-count="99" :offset="[-2, 2]">
-                            <bell-outlined class="header-icon" />
+                            <bell-outlined class="header-icon bell-icon" />
                         </a-badge>
                     </a-popover>
-                    <user-outlined class="header-icon user-avatar" />
+                    <user-outlined class="header-icon user-avatar" @click="showSettings" />
                 </div>
             </header>
 
             <!-- Content -->
             <main class="app-content">
-                <div class="main-view-area" :class="{ 'full-width': route.path === '/tools' }">
+                <div
+                    class="main-view-area"
+                    :class="{
+                        'full-width':
+                            route.path === '/tools' || route.path === '/settings' || route.path === '/subscription'
+                    }"
+                >
                     <router-view v-slot="{ Component }">
                         <component
                             :is="Component"
@@ -88,7 +94,10 @@
                         />
                     </router-view>
                 </div>
-                <div v-if="route.path !== '/tools'" class="side-panel-area">
+                <div
+                    v-if="route.path !== '/tools' && route.path !== '/settings' && route.path !== '/subscription'"
+                    class="side-panel-area"
+                >
                     <RightPanel
                         ref="sidePanelRef"
                         :selectedDate="selectedDate"
@@ -139,7 +148,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import dayjs from 'dayjs';
 import scheduleManager from './utils/scheduleManager';
-import { message } from 'ant-design-vue';
+import settingsManager from './utils/settingsManager';
+import { message, Modal } from 'ant-design-vue';
 import {
     CalendarFilled,
     CheckSquareOutlined,
@@ -153,8 +163,10 @@ import {
     BorderOutlined,
     ClockCircleOutlined,
     EnvironmentOutlined,
-    FileTextOutlined
+    FileTextOutlined,
+    ExclamationCircleOutlined
 } from '@ant-design/icons-vue';
+import { createVNode } from 'vue';
 import RightPanel from './components/RightPanel.vue';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 
@@ -178,6 +190,10 @@ const notifiedIds = new Set();
 const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length);
 const notifDetailVisible = ref(false);
 const selectedNotif = ref(null);
+
+function showSettings() {
+    router.push('/settings');
+}
 
 // 导航方法
 function goToCalendar() {
@@ -442,11 +458,43 @@ async function toggleMaximize() {
     font-size: 18px;
     cursor: pointer;
     opacity: 0.9;
+    color: white; /* 确保图标默认也是白色 */
+}
+.bell-icon {
+    color: white !important;
+    opacity: 1;
 }
 .user-avatar {
     background: rgba(255, 255, 255, 0.3);
     padding: 6px;
     border-radius: 50%;
+    transition: background 0.2s;
+}
+.user-avatar:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* 设置面板样式 */
+.settings-view {
+    padding: 10px 0;
+}
+.data-manage-section {
+    padding: 10px 0;
+}
+.data-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 8px;
+}
+.data-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+.data-desc {
+    font-size: 12px;
+    color: #8c8c8c;
 }
 
 /* 通知中心样式 */
