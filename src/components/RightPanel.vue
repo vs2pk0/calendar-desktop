@@ -198,6 +198,17 @@
                 <div class="card-header">
                     <div class="card-title-group">
                         <span class="card-title">星座运势</span>
+                        <a-select
+                            v-model:value="zodiacType"
+                            size="small"
+                            class="zodiac-type-selector"
+                            @change="fetchZodiac"
+                            :bordered="false"
+                        >
+                            <a-select-option v-for="t in zodiacTypes" :key="t.value" :value="t.value">
+                                {{ t.name }}
+                            </a-select-option>
+                        </a-select>
                     </div>
                     <a-select
                         v-model:value="selectedZodiac"
@@ -215,31 +226,120 @@
                     <a-spin size="small" />
                 </div>
                 <div v-else-if="zodiacInfo" class="zodiac-content">
-                    <div class="zodiac-main">
-                        <div class="zodiac-fortune-item">
-                            <span class="f-label">综合指数</span>
-                            <a-rate
-                                :value="parseInt(zodiacInfo.fortunetext?.all || 0) / 20"
-                                disabled
-                                class="small-rate"
-                            />
+                    <!-- 今日/明日运势 -->
+                    <template v-if="zodiacType === 'today' || zodiacType === 'tomorrow'">
+                        <div class="zodiac-date">{{ zodiacInfo.datetime || zodiacInfo.date }}</div>
+                        <div class="zodiac-main">
+                            <div class="zodiac-fortune-item">
+                                <span class="f-label">综合指数</span>
+                                <a-rate :value="parseInt(zodiacInfo.all || 0) / 20" disabled class="small-rate" />
+                            </div>
+                            <div class="zodiac-fortune-item">
+                                <span class="f-label">爱情指数</span>
+                                <a-rate :value="parseInt(zodiacInfo.love || 0) / 20" disabled class="small-rate" />
+                            </div>
+                            <div class="zodiac-fortune-item">
+                                <span class="f-label">工作指数</span>
+                                <a-rate :value="parseInt(zodiacInfo.work || 0) / 20" disabled class="small-rate" />
+                            </div>
+                            <div class="zodiac-fortune-item">
+                                <span class="f-label">财运指数</span>
+                                <a-rate :value="parseInt(zodiacInfo.money || 0) / 20" disabled class="small-rate" />
+                            </div>
+                            <div class="zodiac-fortune-item">
+                                <span class="f-label">健康指数</span>
+                                <a-rate :value="parseInt(zodiacInfo.health || 0) / 20" disabled class="small-rate" />
+                            </div>
                         </div>
-                        <div class="zodiac-fortune-item">
-                            <span class="f-label">爱情指数</span>
-                            <a-rate
-                                :value="parseInt(zodiacInfo.fortunetext?.love || 0) / 20"
-                                disabled
-                                class="small-rate"
-                            />
+                        <div class="zodiac-tag-row">
+                            <span class="z-tag">幸运色：{{ zodiacInfo.color }}</span>
+                            <span class="z-tag">幸运数：{{ zodiacInfo.number }}</span>
+                            <span class="z-tag">速配：{{ zodiacInfo.QFriend }}</span>
                         </div>
-                    </div>
-                    <div class="zodiac-tag-row">
-                        <span class="z-tag">幸运色：{{ zodiacInfo.luckycolor }}</span>
-                        <span class="z-tag">幸运数：{{ zodiacInfo.luckynumber }}</span>
-                    </div>
-                    <div class="zodiac-desc">
-                        {{ zodiacInfo.description || '今日运势平稳，适合处理琐事。' }}
-                    </div>
+                        <div class="zodiac-desc">{{ zodiacInfo.summary }}</div>
+                    </template>
+
+                    <!-- 本周运势 -->
+                    <template v-else-if="zodiacType === 'week'">
+                        <div class="zodiac-date">{{ zodiacInfo.date }} (第{{ zodiacInfo.weekth }}周)</div>
+                        <div class="zodiac-week-content">
+                            <div class="week-item">
+                                <div class="week-label">💼 工作运</div>
+                                <div class="week-text">{{ zodiacInfo.work }}</div>
+                            </div>
+                            <div class="week-item">
+                                <div class="week-label">💰 财运</div>
+                                <div class="week-text">{{ zodiacInfo.money }}</div>
+                            </div>
+                            <div class="week-item">
+                                <div class="week-label">❤️ 爱情运</div>
+                                <div class="week-text">{{ zodiacInfo.love }}</div>
+                            </div>
+                            <div class="week-item">
+                                <div class="week-label">🏥 健康运</div>
+                                <div class="week-text">{{ zodiacInfo.health }}</div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- 本月运势 -->
+                    <template v-else-if="zodiacType === 'month'">
+                        <div class="zodiac-date">{{ zodiacInfo.date }}</div>
+                        <div class="zodiac-month-content">
+                            <div class="month-item">
+                                <div class="month-label">综合运势</div>
+                                <div class="month-text">{{ zodiacInfo.all }}</div>
+                            </div>
+                            <div class="month-item">
+                                <div class="month-label">💼 工作运</div>
+                                <div class="month-text">{{ zodiacInfo.work }}</div>
+                            </div>
+                            <div class="month-item">
+                                <div class="month-label">💰 财运</div>
+                                <div class="month-text">{{ zodiacInfo.money }}</div>
+                            </div>
+                            <div class="month-item">
+                                <div class="month-label">❤️ 爱情运</div>
+                                <div class="month-text">{{ zodiacInfo.love }}</div>
+                            </div>
+                            <div class="month-item">
+                                <div class="month-label">🏥 健康运</div>
+                                <div class="month-text">{{ zodiacInfo.health }}</div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- 本年运势 -->
+                    <template v-else-if="zodiacType === 'year'">
+                        <div class="zodiac-date">{{ zodiacInfo.date }}</div>
+                        <div class="zodiac-year-content">
+                            <div class="year-section" v-if="zodiacInfo.mima">
+                                <div class="year-title">🔮 年度密码</div>
+                                <div class="year-subtitle">{{ zodiacInfo.mima.info }}</div>
+                                <div class="year-text" v-for="(text, idx) in zodiacInfo.mima.text" :key="idx">
+                                    {{ text }}
+                                </div>
+                            </div>
+                            <div class="year-section" v-if="zodiacInfo.career">
+                                <div class="year-title">💼 事业运</div>
+                                <div class="year-text" v-for="(text, idx) in zodiacInfo.career" :key="idx">
+                                    {{ text }}
+                                </div>
+                            </div>
+                            <div class="year-section" v-if="zodiacInfo.love">
+                                <div class="year-title">❤️ 感情运</div>
+                                <div class="year-text" v-for="(text, idx) in zodiacInfo.love" :key="idx">
+                                    {{ text }}
+                                </div>
+                            </div>
+                            <div class="year-section" v-if="zodiacInfo.finance">
+                                <div class="year-title">💰 财运</div>
+                                <div class="year-text" v-for="(text, idx) in zodiacInfo.finance" :key="idx">
+                                    {{ text }}
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
                 <div v-else class="zodiac-empty">
                     获取数据失败，请重试
@@ -303,26 +403,6 @@
                 </div>
             </div>
         </a-modal>
-
-        <!-- Bottom Tools (Icons) -->
-        <div class="bottom-tools">
-            <div class="tool-item" @click="showCalendarConverter">
-                <div class="tool-icon" style="background: #ff7875"><calendar-outlined /></div>
-                <span>公农历转换</span>
-            </div>
-            <div class="tool-item" @click="showHolidayList">
-                <div class="tool-icon" style="background: #ff9c6e"><gift-outlined /></div>
-                <span>节日大全</span>
-            </div>
-            <div class="tool-item" @click="showDateCalculator">
-                <div class="tool-icon" style="background: #9254de"><calculator-outlined /></div>
-                <span>日期计算</span>
-            </div>
-            <div class="tool-item" @click="showAllTools">
-                <div class="tool-icon custom-more">...</div>
-                <span>全部</span>
-            </div>
-        </div>
 
         <!-- 公农历转换弹窗 -->
         <a-modal
@@ -704,20 +784,33 @@ const subscribedIds = subscriptionManager.subscribedIds;
 // 星座数据
 const zodiacLoading = ref(false);
 const zodiacInfo = ref(null);
-const selectedZodiac = ref(localStorage.getItem('selected_zodiac') || 'aries');
+const selectedZodiac = ref(localStorage.getItem('selected_zodiac') || '白羊座');
+const zodiacType = ref(localStorage.getItem('zodiac_type') || 'today');
+
+// 聚合数据API Key
+const JUHE_ZODIAC_KEY = '63553bcad1016ac89a4a60383b2c2bad';
+
 const zodiacs = [
-    { name: '白羊座', value: 'aries' },
-    { name: '金牛座', value: 'taurus' },
-    { name: '双子座', value: 'gemini' },
-    { name: '巨蟹座', value: 'cancer' },
-    { name: '狮子座', value: 'leo' },
-    { name: '处女座', value: 'virgo' },
-    { name: '天秤座', value: 'libra' },
-    { name: '天蝎座', value: 'scorpio' },
-    { name: '射手座', value: 'sagittarius' },
-    { name: '摩羯座', value: 'capricorn' },
-    { name: '水瓶座', value: 'aquarius' },
-    { name: '双鱼座', value: 'pisces' }
+    { name: '白羊座', value: '白羊座' },
+    { name: '金牛座', value: '金牛座' },
+    { name: '双子座', value: '双子座' },
+    { name: '巨蟹座', value: '巨蟹座' },
+    { name: '狮子座', value: '狮子座' },
+    { name: '处女座', value: '处女座' },
+    { name: '天秤座', value: '天秤座' },
+    { name: '天蝎座', value: '天蝎座' },
+    { name: '射手座', value: '射手座' },
+    { name: '摩羯座', value: '摩羯座' },
+    { name: '水瓶座', value: '水瓶座' },
+    { name: '双鱼座', value: '双鱼座' }
+];
+
+const zodiacTypes = [
+    { name: '今日', value: 'today' },
+    { name: '明日', value: 'tomorrow' },
+    { name: '本周', value: 'week' },
+    { name: '本月', value: 'month' },
+    { name: '本年', value: 'year' }
 ];
 
 async function fetchZodiac() {
@@ -725,14 +818,22 @@ async function fetchZodiac() {
     try {
         zodiacLoading.value = true;
         localStorage.setItem('selected_zodiac', selectedZodiac.value);
-        // 使用韩小韩免费API
-        const res = await fetch(`https://api.vvhan.com/api/horoscope?type=${selectedZodiac.value}&time=today`);
+        localStorage.setItem('zodiac_type', zodiacType.value);
+
+        // 使用聚合数据星座运势API
+        const url = `http://web.juhe.cn/constellation/getAll?key=${JUHE_ZODIAC_KEY}&consName=${encodeURIComponent(selectedZodiac.value)}&type=${zodiacType.value}`;
+        const res = await fetch(url);
         const data = await res.json();
-        if (data.success) {
-            zodiacInfo.value = data.data;
+
+        if (data.error_code === 0) {
+            zodiacInfo.value = data;
+        } else {
+            console.error('获取星座运势失败:', data.reason);
+            zodiacInfo.value = null;
         }
     } catch (e) {
         console.error('获取星座运势失败:', e);
+        zodiacInfo.value = null;
     } finally {
         zodiacLoading.value = false;
     }
@@ -1442,16 +1543,27 @@ watch(currentDateObj, () => {
     background: linear-gradient(to right bottom, #ffffff, #f9f0ff);
 }
 .zodiac-selector {
-    width: 90px;
+    width: 85px;
     margin-right: -8px;
 }
-.zodiac-selector :deep(.ant-select-selector) {
+.zodiac-selector :deep(.ant-select-selector),
+.zodiac-type-selector :deep(.ant-select-selector) {
     color: #722ed1 !important;
     font-weight: 600;
+}
+.zodiac-type-selector {
+    width: 70px;
+    margin-right: 4px;
 }
 .zodiac-loading {
     padding: 20px;
     text-align: center;
+}
+.zodiac-date {
+    font-size: 13px;
+    color: #722ed1;
+    margin-bottom: 8px;
+    font-weight: 500;
 }
 .zodiac-main {
     display: flex;
@@ -1475,6 +1587,7 @@ watch(currentDateObj, () => {
     display: flex;
     gap: 8px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
 }
 .z-tag {
     font-size: 11px;
@@ -1488,7 +1601,7 @@ watch(currentDateObj, () => {
     color: #595959;
     line-height: 1.6;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -1497,6 +1610,78 @@ watch(currentDateObj, () => {
     padding: 10px;
     color: #bfbfbf;
     font-size: 12px;
+}
+
+/* 周期运势样式 (周/月) */
+.zodiac-week-content,
+.zodiac-month-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.week-item,
+.month-item {
+    background: rgba(255, 255, 255, 0.6);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px dashed rgba(114, 46, 209, 0.2);
+}
+.week-label,
+.month-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #722ed1;
+    margin-bottom: 4px;
+}
+.week-text,
+.month-text {
+    font-size: 13px;
+    color: #595959;
+    line-height: 1.5;
+}
+
+/* 年度运势样式 */
+.zodiac-year-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.zodiac-year-content::-webkit-scrollbar {
+    width: 4px;
+}
+.zodiac-year-content::-webkit-scrollbar-thumb {
+    background: #d9d9d9;
+    border-radius: 2px;
+}
+.year-section {
+    background: rgba(255, 255, 255, 0.6);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(114, 46, 209, 0.15);
+}
+.year-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #722ed1;
+    margin-bottom: 6px;
+    border-bottom: 1px solid rgba(114, 46, 209, 0.1);
+    padding-bottom: 4px;
+}
+.year-subtitle {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 6px;
+}
+.year-text {
+    font-size: 13px;
+    color: #595959;
+    line-height: 1.6;
+    text-indent: 2em;
+    margin-bottom: 4px;
 }
 
 /* 黄历运势样式 */

@@ -27,6 +27,9 @@
         },
         {
           "url": "https://timor.tech/*"
+        },
+        {
+          "url": "http://web.juhe.cn/*"
         }
       ]
     }

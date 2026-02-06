@@ -13,8 +13,10 @@
     "windows": [
       {
         "title": "Calendar",
-        "width": 1050,
+        "width": 950,
         "height": 750,
+        "minWidth": 950,
+        "minHeight": 750,
         "decorations": false,
         "dragDropEnabled": true,
         "resizable": true

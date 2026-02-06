@@ -41,7 +41,8 @@ import {
     RocketOutlined,
     GlobalOutlined,
     CarOutlined,
-    LeftOutlined
+    LeftOutlined,
+    CalendarOutlined
 } from '@ant-design/icons-vue';
 import subscriptionManager from '../utils/subscriptionManager';
 
@@ -54,7 +55,8 @@ const iconComponents = {
     'experiment-outlined': ExperimentOutlined,
     'rocket-outlined': RocketOutlined,
     'global-outlined': GlobalOutlined,
-    'car-outlined': CarOutlined
+    'car-outlined': CarOutlined,
+    'calendar-outlined': CalendarOutlined
 };
 
 function loadItems() {
@@ -80,17 +82,18 @@ onMounted(() => {
     padding: 24px 32px;
     background: white;
     height: 100%;
+    overflow-y: auto;
 }
 
 .subscription-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 .subscription-header .title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
     color: #1a1a1a;
     margin: 0;
@@ -98,16 +101,16 @@ onMounted(() => {
 
 .subscription-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
 }
 
 .sub-card {
     display: flex;
     align-items: center;
-    padding: 20px;
+    padding: 16px;
     background: #fff;
-    border-radius: 16px;
+    border-radius: 12px;
     border: 1px solid #f0f0f0;
     transition: all 0.3s;
 }
@@ -118,13 +121,13 @@ onMounted(() => {
 }
 
 .sub-icon-wrapper {
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 16px;
+    margin-right: 12px;
     flex-shrink: 0;
 }
 
@@ -134,14 +137,14 @@ onMounted(() => {
 }
 
 .sub-name {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 500;
     color: #333;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .sub-desc {
-    font-size: 13px;
+    font-size: 12px;
     color: #999;
     white-space: nowrap;
     overflow: hidden;
@@ -149,9 +152,9 @@ onMounted(() => {
 }
 
 .sub-btn {
-    min-width: 84px;
-    height: 36px;
-    font-size: 14px;
+    min-width: 72px;
+    height: 32px;
+    font-size: 13px;
 }
 
 .sub-btn.is-subscribed {

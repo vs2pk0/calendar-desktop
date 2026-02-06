@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     CalendarOutlined,
@@ -91,33 +91,47 @@ import {
     StarOutlined
 } from '@ant-design/icons-vue';
 
+// Import tool components
+import CalendarConverter from '../components/tools/CalendarConverter.vue';
+import HolidayList from '../components/tools/HolidayList.vue';
+import DateCalculator from '../components/tools/DateCalculator.vue';
+import Countdown from '../components/tools/Countdown.vue';
+import PerpetualCalendar from '../components/tools/PerpetualCalendar.vue';
+import LuckyDay from '../components/tools/LuckyDay.vue';
+
 const router = useRouter();
 const toolModalVisible = ref(false);
 const currentToolTitle = ref('');
-const currentToolComponent = ref(null);
+const currentToolComponent = shallowRef(null);
 
 const openTool = (toolName) => {
-    // 这里可以根据工具名称打开对应的工具组件
-    // 暂时使用弹窗展示，后续可以改为独立页面
     switch (toolName) {
         case 'calendar-converter':
             currentToolTitle.value = '公农历转换';
+            currentToolComponent.value = CalendarConverter;
             break;
         case 'holiday-list':
             currentToolTitle.value = '节日大全';
+            currentToolComponent.value = HolidayList;
             break;
         case 'date-calculator':
             currentToolTitle.value = '日期计算';
+            currentToolComponent.value = DateCalculator;
             break;
         case 'countdown':
             currentToolTitle.value = '倒数日';
+            currentToolComponent.value = Countdown;
             break;
         case 'perpetual-calendar':
             currentToolTitle.value = '万年历';
+            currentToolComponent.value = PerpetualCalendar;
             break;
         case 'lucky-day':
             currentToolTitle.value = '吉日查询';
+            currentToolComponent.value = LuckyDay;
             break;
+        default:
+            currentToolComponent.value = null;
     }
     toolModalVisible.value = true;
 };

@@ -236,7 +236,7 @@ function selectDate(date) {
     height: 100%;
     padding: 16px;
     background: white;
-    border-radius: 12px;
+    border-radius: 12px 12px 0 0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 

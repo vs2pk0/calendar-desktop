@@ -80,7 +80,12 @@
             <main class="app-content">
                 <div class="main-view-area" :class="{ 'full-width': route.path === '/tools' }">
                     <router-view v-slot="{ Component }">
-                        <component :is="Component" ref="viewRef" @select="handleDateSelect" />
+                        <component
+                            :is="Component"
+                            ref="viewRef"
+                            @select="handleDateSelect"
+                            @open-tool="handleOpenTool"
+                        />
                     </router-view>
                 </div>
                 <div v-if="route.path !== '/tools'" class="side-panel-area">
@@ -185,6 +190,22 @@ function goToSubscription() {
 
 function onEditSubscription() {
     router.push('/subscription');
+}
+
+// 处理工具栏点击
+function handleOpenTool(toolType) {
+    if (sidePanelRef.value) {
+        const toolMethodMap = {
+            'calendar-converter': 'showCalendarConverter',
+            'holiday-list': 'showHolidayList',
+            'date-calculator': 'showDateCalculator'
+        };
+
+        const methodName = toolMethodMap[toolType];
+        if (methodName && typeof sidePanelRef.value[methodName] === 'function') {
+            sidePanelRef.value[methodName]();
+        }
+    }
 }
 
 // 检查日程提醒
