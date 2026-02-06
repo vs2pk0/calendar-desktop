@@ -16,8 +16,8 @@
                         </span>
                     </div>
                     <div class="logo">
-                        <!-- Generic Calendar Icon -->
-                        <calendar-filled style="font-size: 24px; color: white" />
+                        <img src="/logo.png" alt="logo" class="logo-img" />
+                        <span class="logo-text">云小历</span>
                     </div>
                     <div class="nav-tabs">
                         <div class="nav-item" :class="{ active: activeTab === 'calendar' }" @click="goToCalendar">
@@ -420,7 +420,19 @@ async function toggleMaximize() {
     margin-right: 32px;
     display: flex;
     align-items: center;
+    gap: 8px;
     -webkit-app-region: no-drag;
+}
+.logo-img {
+    height: 28px;
+    width: 28px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+.logo-text {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1px;
 }
 
 .nav-tabs {

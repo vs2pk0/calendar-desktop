@@ -210,115 +210,87 @@
                 <div v-else-if="zodiacInfo" class="zodiac-content">
                     <!-- 今日/明日运势 -->
                     <template v-if="zodiacType === 'today' || zodiacType === 'tomorrow'">
-                        <div class="zodiac-date">{{ zodiacInfo.datetime || zodiacInfo.date }}</div>
+                        <div class="zodiac-date">{{ zodiacInfo.time }}</div>
                         <div class="zodiac-main">
                             <div class="zodiac-fortune-item">
                                 <span class="f-label">综合指数</span>
-                                <a-rate :value="parseInt(zodiacInfo.all || 0) / 20" disabled class="small-rate" />
+                                <a-rate :value="zodiacInfo.fortune.all" disabled class="small-rate" />
                             </div>
                             <div class="zodiac-fortune-item">
                                 <span class="f-label">爱情指数</span>
-                                <a-rate :value="parseInt(zodiacInfo.love || 0) / 20" disabled class="small-rate" />
+                                <a-rate :value="zodiacInfo.fortune.love" disabled class="small-rate" />
                             </div>
                             <div class="zodiac-fortune-item">
                                 <span class="f-label">工作指数</span>
-                                <a-rate :value="parseInt(zodiacInfo.work || 0) / 20" disabled class="small-rate" />
+                                <a-rate :value="zodiacInfo.fortune.work" disabled class="small-rate" />
                             </div>
                             <div class="zodiac-fortune-item">
                                 <span class="f-label">财运指数</span>
-                                <a-rate :value="parseInt(zodiacInfo.money || 0) / 20" disabled class="small-rate" />
+                                <a-rate :value="zodiacInfo.fortune.money" disabled class="small-rate" />
                             </div>
                             <div class="zodiac-fortune-item">
                                 <span class="f-label">健康指数</span>
-                                <a-rate :value="parseInt(zodiacInfo.health || 0) / 20" disabled class="small-rate" />
+                                <a-rate :value="zodiacInfo.fortune.health" disabled class="small-rate" />
                             </div>
                         </div>
                         <div class="zodiac-tag-row">
-                            <span class="z-tag">幸运色：{{ zodiacInfo.color }}</span>
-                            <span class="z-tag">幸运数：{{ zodiacInfo.number }}</span>
-                            <span class="z-tag">速配：{{ zodiacInfo.QFriend }}</span>
+                            <span class="z-tag">幸运色：{{ zodiacInfo.luckycolor }}</span>
+                            <span class="z-tag">幸运数：{{ zodiacInfo.luckynumber }}</span>
+                            <span class="z-tag">速配：{{ zodiacInfo.luckyconstellation }}</span>
                         </div>
-                        <div class="zodiac-desc">{{ zodiacInfo.summary }}</div>
+                        <div class="zodiac-desc">{{ zodiacInfo.fortunetext.all }}</div>
                     </template>
 
                     <!-- 本周运势 -->
                     <template v-else-if="zodiacType === 'week'">
-                        <div class="zodiac-date">{{ zodiacInfo.date }} (第{{ zodiacInfo.weekth }}周)</div>
+                        <div class="zodiac-date">{{ zodiacInfo.time }}</div>
                         <div class="zodiac-week-content">
                             <div class="week-item">
+                                <div class="week-label">综合运势</div>
+                                <div class="week-text">{{ zodiacInfo.fortunetext.all }}</div>
+                            </div>
+                            <div class="week-item">
                                 <div class="week-label">💼 工作运</div>
-                                <div class="week-text">{{ zodiacInfo.work }}</div>
+                                <div class="week-text">{{ zodiacInfo.fortunetext.work }}</div>
                             </div>
                             <div class="week-item">
                                 <div class="week-label">💰 财运</div>
-                                <div class="week-text">{{ zodiacInfo.money }}</div>
+                                <div class="week-text">{{ zodiacInfo.fortunetext.money }}</div>
                             </div>
                             <div class="week-item">
                                 <div class="week-label">❤️ 爱情运</div>
-                                <div class="week-text">{{ zodiacInfo.love }}</div>
+                                <div class="week-text">{{ zodiacInfo.fortunetext.love }}</div>
                             </div>
                             <div class="week-item">
                                 <div class="week-label">🏥 健康运</div>
-                                <div class="week-text">{{ zodiacInfo.health }}</div>
+                                <div class="week-text">{{ zodiacInfo.fortunetext.health }}</div>
                             </div>
                         </div>
                     </template>
 
                     <!-- 本月运势 -->
                     <template v-else-if="zodiacType === 'month'">
-                        <div class="zodiac-date">{{ zodiacInfo.date }}</div>
+                        <div class="zodiac-date">{{ zodiacInfo.time }}</div>
                         <div class="zodiac-month-content">
                             <div class="month-item">
                                 <div class="month-label">综合运势</div>
-                                <div class="month-text">{{ zodiacInfo.all }}</div>
+                                <div class="month-text">{{ zodiacInfo.fortunetext.all }}</div>
                             </div>
                             <div class="month-item">
                                 <div class="month-label">💼 工作运</div>
-                                <div class="month-text">{{ zodiacInfo.work }}</div>
+                                <div class="month-text">{{ zodiacInfo.fortunetext.work }}</div>
                             </div>
                             <div class="month-item">
                                 <div class="month-label">💰 财运</div>
-                                <div class="month-text">{{ zodiacInfo.money }}</div>
+                                <div class="month-text">{{ zodiacInfo.fortunetext.money }}</div>
                             </div>
                             <div class="month-item">
                                 <div class="month-label">❤️ 爱情运</div>
-                                <div class="month-text">{{ zodiacInfo.love }}</div>
+                                <div class="month-text">{{ zodiacInfo.fortunetext.love }}</div>
                             </div>
                             <div class="month-item">
                                 <div class="month-label">🏥 健康运</div>
-                                <div class="month-text">{{ zodiacInfo.health }}</div>
-                            </div>
-                        </div>
-                    </template>
-
-                    <!-- 本年运势 -->
-                    <template v-else-if="zodiacType === 'year'">
-                        <div class="zodiac-date">{{ zodiacInfo.date }}</div>
-                        <div class="zodiac-year-content">
-                            <div class="year-section" v-if="zodiacInfo.mima">
-                                <div class="year-title">🔮 年度密码</div>
-                                <div class="year-subtitle">{{ zodiacInfo.mima.info }}</div>
-                                <div class="year-text" v-for="(text, idx) in zodiacInfo.mima.text" :key="idx">
-                                    {{ text }}
-                                </div>
-                            </div>
-                            <div class="year-section" v-if="zodiacInfo.career">
-                                <div class="year-title">💼 事业运</div>
-                                <div class="year-text" v-for="(text, idx) in zodiacInfo.career" :key="idx">
-                                    {{ text }}
-                                </div>
-                            </div>
-                            <div class="year-section" v-if="zodiacInfo.love">
-                                <div class="year-title">❤️ 感情运</div>
-                                <div class="year-text" v-for="(text, idx) in zodiacInfo.love" :key="idx">
-                                    {{ text }}
-                                </div>
-                            </div>
-                            <div class="year-section" v-if="zodiacInfo.finance">
-                                <div class="year-title">💰 财运</div>
-                                <div class="year-text" v-for="(text, idx) in zodiacInfo.finance" :key="idx">
-                                    {{ text }}
-                                </div>
+                                <div class="month-text">{{ zodiacInfo.fortunetext.health }}</div>
                             </div>
                         </div>
                     </template>
@@ -801,11 +773,25 @@ const zodiacs = [
 
 const zodiacTypes = [
     { name: '今日', value: 'today' },
-    { name: '明日', value: 'tomorrow' },
+    // { name: '明日', value: 'tomorrow' },
     { name: '本周', value: 'week' },
-    { name: '本月', value: 'month' },
-    { name: '本年', value: 'year' }
+    { name: '本月', value: 'month' }
 ];
+
+const zodiacMap = {
+    白羊座: 'aries',
+    金牛座: 'taurus',
+    双子座: 'gemini',
+    巨蟹座: 'cancer',
+    狮子座: 'leo',
+    处女座: 'virgo',
+    天秤座: 'libra',
+    天蝎座: 'scorpio',
+    射手座: 'sagittarius',
+    摩羯座: 'capricorn',
+    水瓶座: 'aquarius',
+    双鱼座: 'pisces'
+};
 
 async function fetchZodiac() {
     if (!subscriptionManager.isSubscribed('zodiac')) return;
@@ -815,16 +801,34 @@ async function fetchZodiac() {
         localStorage.setItem('zodiac_type', zodiacType.value);
 
         // 使用设置中的地址和 Key
-        const zodiacApi = settingsManager.get('zodiacApi');
-        const zodiacKey = settingsManager.get('zodiacKey');
-        const url = `${zodiacApi}?key=${zodiacKey}&consName=${encodeURIComponent(selectedZodiac.value)}&type=${zodiacType.value}`;
+        let zodiacApi = settingsManager.get('zodiacApi');
+        // 兜底：如果是旧的接口地址或者为空，强制换一下
+        if (!zodiacApi || zodiacApi.includes('juhe.cn') || !zodiacApi.includes('xxapi.cn')) {
+            zodiacApi = 'https://v2.xxapi.cn/api/horoscope';
+        }
+
+        // 新接口参数名为 type (英文/拼音) 和 time
+        const typePara = zodiacMap[selectedZodiac.value] || 'aries';
+        const url = `${zodiacApi}?type=${typePara}&time=${zodiacType.value}`;
+        console.log('Fetching zodiac from:', url);
+
         const res = await fetch(url);
         const data = await res.json();
 
-        if (data.error_code === 0) {
-            zodiacInfo.value = data;
+        // 兼容不同的状态码字段和类型
+        const code = data.code !== undefined ? data.code : data.error_code;
+        if (code == 200 || code == 0) {
+            // 兼容直接在 root 或者在 data 字段里的数据
+            const resultData = data.data || data;
+            // 确保必需的字段存在
+            if (resultData && resultData.fortunetext) {
+                zodiacInfo.value = resultData;
+            } else {
+                console.error('返回数据格式不正确:', data);
+                zodiacInfo.value = null;
+            }
         } else {
-            console.error('获取星座运势失败:', data.reason);
+            console.error('获取星座运势失败:', data.msg || data.reason || '未知错误');
             zodiacInfo.value = null;
         }
     } catch (e) {

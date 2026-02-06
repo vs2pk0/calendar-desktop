@@ -78,9 +78,13 @@
                 <a-tab-pane key="about" tab="关于">
                     <div class="settings-section about-section">
                         <div class="app-logo">
-                            <calendar-filled style="font-size: 64px; color: #5b7cfa" />
+                            <img
+                                src="/logo.png"
+                                alt="logo"
+                                style="width: 80px; height: 80px; object-fit: contain; border-radius: 16px"
+                            />
                         </div>
-                        <h2 class="app-name">智能日历桌面版</h2>
+                        <h2 class="app-name">云小历</h2>
                         <div class="app-version">Version 1.0.0</div>
                         <div class="app-desc">
                             一个基于 Tauri + Vue 3 的轻量级桌面日历应用，支持农历、节假日、日程提醒及多种生活订阅服务。

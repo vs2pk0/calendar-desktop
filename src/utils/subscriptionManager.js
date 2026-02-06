@@ -69,7 +69,7 @@ class SubscriptionManager {
             }
         }
         // 默认订阅
-        return ['weather', 'worldClock', 'lunar', 'huangli'];
+        return ['weather', 'worldClock', 'lunar', 'huangli', 'zodiac'];
     }
 
     _saveToStorage() {

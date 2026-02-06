@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    calendar_desktop_lib::run()
+    yun_xiao_li_lib::run()
 }
