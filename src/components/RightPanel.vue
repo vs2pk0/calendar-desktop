@@ -139,7 +139,6 @@
             <div v-if="subscribedIds.includes('worldClock')" class="info-card clock-card">
                 <div class="card-header">
                     <span class="card-title">世界时钟</span>
-                    <setting-outlined class="card-setting" />
                 </div>
                 <div class="clocks-container">
                     <div class="clock-item">
@@ -305,7 +304,6 @@
             <div v-if="subscribedIds.includes('huangli')" class="info-card huangli-card">
                 <div class="card-header">
                     <span class="card-title">黄历运势</span>
-                    <setting-outlined class="card-setting" />
                 </div>
                 <div class="huangli-content">
                     <div class="h-item h-yi">
