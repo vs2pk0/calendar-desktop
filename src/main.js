@@ -1,3 +1,11 @@
+/*
+ * @Author: DaLong Li
+ * @Date: 2026-02-05 15:45:33
+ * @LastEditTime: 2026-02-09 10:03:35
+ * @LastEditors: DaLong Li
+ * @Description:
+ * 生命在于运动，代码在于抽动。
+ */
 import { createApp } from 'vue';
 import App from './App.vue';
 import Antd from 'ant-design-vue';

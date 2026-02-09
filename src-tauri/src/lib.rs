@@ -28,10 +28,24 @@ pub fn run() {
         .setup(|app| {
             #[cfg(all(desktop, target_os = "macos"))]
             {
-                use tauri::tray::TrayIconBuilder;
-                if let Some(icon) = app.default_window_icon() {
+                use tauri::Manager;
+                use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+                if let Some(_icon) = app.default_window_icon() {
                     let _ = TrayIconBuilder::with_id("main-tray")
-                        .icon(icon.clone())
+                        .on_tray_icon_event(|tray, event| {
+                            if let TrayIconEvent::Click {
+                                button: MouseButton::Left,
+                                button_state: MouseButtonState::Up,
+                                ..
+                            } = event
+                            {
+                                let app = tray.app_handle();
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show().unwrap();
+                                    let _ = window.set_focus().unwrap();
+                                }
+                            }
+                        })
                         .title("")
                         .build(app);
                 }

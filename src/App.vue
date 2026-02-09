@@ -189,6 +189,7 @@ const activeTab = computed(() => {
 const selectedDate = ref(null);
 const viewRef = ref(null);
 const sidePanelRef = ref(null);
+const lastCheckedDate = ref(dayjs().format('YYYY-MM-DD'));
 
 // 通知系统
 const notifications = ref([]);
@@ -235,6 +236,16 @@ async function checkSchedules() {
     const now = dayjs();
     const dateStr = now.format('YYYY-MM-DD');
     const timeStr = now.format('HH:mm');
+
+    // 检查日期是否切换
+    if (dateStr !== lastCheckedDate.value) {
+        lastCheckedDate.value = dateStr;
+        refreshCalendar();
+        // 如果在首页，尝试让首页视图也知道日期变了（主要是今天高亮）
+        if (viewRef.value && typeof viewRef.value.goToday === 'function') {
+            viewRef.value.goToday();
+        }
+    }
 
     try {
         const todaySchedules = await scheduleManager.getSchedulesByDate(dateStr);
@@ -300,6 +311,7 @@ function clearAllNotifs() {
 }
 
 let checkTimer = null;
+let trayTimer = null;
 let lastTrayTitle = '';
 
 async function updateTrayTitle() {
@@ -384,11 +396,21 @@ function openTools() {
 const appWindow = getCurrentWindow();
 
 async function closeWindow() {
-    try {
-        await appWindow.close();
-    } catch (e) {
-        console.error('关闭窗口失败:', e);
-    }
+    Modal.confirm({
+        title: '提示',
+        icon: createVNode(ExclamationCircleOutlined),
+        content: '确定要退出云小历吗？',
+        okText: '退出',
+        cancelText: '取消',
+        centered: true,
+        onOk: async () => {
+            try {
+                await appWindow.close();
+            } catch (e) {
+                console.error('关闭窗口失败:', e);
+            }
+        }
+    });
 }
 
 async function minimizeWindow() {
