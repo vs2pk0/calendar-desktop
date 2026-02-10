@@ -52,7 +52,12 @@
                     <div class="settings-section">
                         <a-form layout="vertical">
                             <a-form-item label="天气预报 API (高德地图)">
-                                <template #extra>用于同步首页和右侧边栏的天气信息</template>
+                                <template #extra>
+                                    用于同步首页和右侧边栏的天气信息。
+                                    <a href="https://lbs.amap.com/api/webservice/guide/api/weatherinfo" target="_blank"
+                                        >查看高德地图文档</a
+                                    >
+                                </template>
                                 <a-input v-model:value="settingsForm.weatherApi" placeholder="接口地址" />
                                 <a-input
                                     v-model:value="settingsForm.weatherKey"
@@ -63,8 +68,11 @@
 
                             <a-divider />
 
-                            <a-form-item label="星座运势 API (聚合数据)">
-                                <template #extra>用于右侧边栏的星座运势卡片</template>
+                            <a-form-item label="星座运势 API">
+                                <template #extra>
+                                    用于右侧边栏的星座运势卡片。
+                                    <a href="https://xxapi.cn/doc/horoscope" target="_blank">查看 xxapi.cn 文档</a>
+                                </template>
                                 <a-input v-model:value="settingsForm.zodiacApi" placeholder="接口地址" />
                                 <a-input
                                     v-model:value="settingsForm.zodiacKey"
@@ -76,7 +84,10 @@
                             <a-divider />
 
                             <a-form-item label="节假日 API (timor.tech)">
-                                <template #extra>用于日历下标显示节假日和调休信息</template>
+                                <template #extra>
+                                    用于日历下标显示节假日和调休信息。
+                                    <a href="https://timor.tech/api/holiday/" target="_blank">查看节假日文档</a>
+                                </template>
                                 <a-input v-model:value="settingsForm.holidayApi" placeholder="年接口地址" />
                             </a-form-item>
 

@@ -331,12 +331,13 @@ async function updateTrayTitle() {
     }
 
     const now = dayjs();
-    const weather = weatherManager.get();
+    const weather = weatherManager.getToday();
+    const weatherCityName = localStorage.getItem('weather_city_name') || '北京';
 
     let titleFormat = format;
     if (weather) {
         titleFormat = titleFormat
-            .replace('{city}', `[${weather.city || ''}]`)
+            .replace('{city}', `[${weatherCityName}]`)
             .replace('{temp}', `[${weather.temp_day || ''}]`)
             .replace('{weather}', `[${weather.weather || ''}]`);
     } else {
@@ -361,6 +362,14 @@ async function updateTrayTitle() {
     }
 }
 
+async function refreshWeather() {
+    const adcode = localStorage.getItem('weather_adcode') || '110000';
+    await weatherManager.fetchWeather(adcode);
+    updateTrayTitle();
+}
+
+let weatherTimer = null;
+
 onMounted(() => {
     // 立即检查一次
     checkSchedules();
@@ -371,11 +380,16 @@ onMounted(() => {
     updateTrayTitle();
     // 提高到 500ms 刷新一次，确保秒级更新平滑（防止因为 1000ms 漂移导致跳秒）
     trayTimer = setInterval(updateTrayTitle, 500);
+
+    // 定时刷新天气数据 (每 30 分钟)
+    refreshWeather();
+    weatherTimer = setInterval(refreshWeather, 30 * 60 * 1000);
 });
 
 onUnmounted(() => {
     if (checkTimer) clearInterval(checkTimer);
     if (trayTimer) clearInterval(trayTimer);
+    if (weatherTimer) clearInterval(weatherTimer);
 });
 
 function handleDateSelect(date) {

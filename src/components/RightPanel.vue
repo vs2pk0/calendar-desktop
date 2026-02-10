@@ -837,8 +837,8 @@ async function fetchZodiac() {
     }
 }
 
-const weatherData = ref(null); // 存储当前选中日期的天气
-const weatherForecasts = ref([]); // 存储获取到的预告数据
+const weatherData = computed(() => weatherManager.selectedWeather.value);
+const weatherForecasts = computed(() => weatherManager.weatherForecasts.value);
 const weatherLoading = ref(false);
 const weatherSettingsVisible = ref(false);
 // AMAP_KEY 已经移至 settingsManager
@@ -1134,25 +1134,10 @@ async function fetchWeather() {
     try {
         weatherLoading.value = true;
         const code = weatherCityAdcode.value;
-        const weatherApi = settingsManager.get('weatherApi');
-        const weatherKey = settingsManager.get('weatherKey');
-
-        // 获取预报数据 (forecast)
-        const res = await fetch(`${weatherApi}?city=${code}&key=${weatherKey}&extensions=all`, {
-            method: 'GET'
-        });
-        const data = await res.json();
-
-        if (data.status === '1' && data.forecasts && data.forecasts.length > 0) {
-            weatherForecasts.value = data.forecasts[0].casts;
-            updateCurrentDayWeather();
-        } else {
-            weatherForecasts.value = [];
-            weatherData.value = null;
-        }
+        await weatherManager.fetchWeather(code);
+        updateCurrentDayWeather();
     } catch (error) {
         console.error('Failed to fetch weather data:', error);
-        weatherData.value = null;
     } finally {
         weatherLoading.value = false;
     }
@@ -1161,27 +1146,7 @@ async function fetchWeather() {
 // 根据选中的日期更新显示的天气
 function updateCurrentDayWeather() {
     const selectedDateStr = currentDateObj.value.format('YYYY-MM-DD');
-    const match = weatherForecasts.value.find((f) => f.date === selectedDateStr);
-
-    if (match) {
-        weatherData.value = {
-            city: weatherCityName.value,
-            weather:
-                match.dayweather === match.nightweather
-                    ? match.dayweather
-                    : `${match.dayweather}转${match.nightweather}`,
-            temp_day: match.daytemp,
-            temp_night: match.nighttemp,
-            daywind: match.daywind,
-            daypower: match.daypower,
-            date: match.date
-        };
-        // 同步到全局天气管理器
-        weatherManager.update(weatherData.value);
-    } else {
-        weatherData.value = null;
-        weatherManager.update(null);
-    }
+    weatherManager.updateSelected(selectedDateStr, weatherCityName.value);
 }
 
 // 移除旧的根据代码获取天气的辅助函数，高德直接返回文字
