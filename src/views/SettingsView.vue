@@ -12,12 +12,48 @@
                 <a-tab-pane key="general" tab="常规设置">
                     <div class="settings-section">
                         <a-form layout="vertical">
+                            <a-form-item label="开机自启动">
+                                <template #extra>登录系统后自动启动云小历（macOS 通过登录项 LaunchAgent 实现）</template>
+                                <div class="setting-item-row">
+                                    <span>登录后自动启动</span>
+                                    <a-switch
+                                        v-model:checked="autoLaunch"
+                                        :loading="autoLaunchLoading"
+                                        @change="handleAutoLaunchToggle"
+                                    />
+                                </div>
+                            </a-form-item>
+
                             <a-form-item label="系统状态栏显示">
                                 <template #extra>在 macOS 顶部状态栏实时显示当前日期、时间和天气</template>
                                 <div class="setting-item-row">
                                     <span>显示时间与天气</span>
                                     <a-switch v-model:checked="settingsForm.showTrayTime" @change="handleTrayToggle" />
                                 </div>
+                                <a-alert
+                                    v-if="trayIssue"
+                                    type="warning"
+                                    show-icon
+                                    style="margin-top: 12px"
+                                    :message="trayIssue.title"
+                                >
+                                    <template #description>
+                                        <div>{{ trayIssue.desc }}</div>
+                                        <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap">
+                                            <a-button
+                                                v-if="trayIssue.repairable"
+                                                type="primary"
+                                                size="small"
+                                                :loading="trayRepairing"
+                                                @click="handleTrayRepair"
+                                            >
+                                                一键修复
+                                            </a-button>
+                                            <a-button size="small" @click="openMenuBarSettings">打开系统设置</a-button>
+                                            <a-button size="small" @click="checkTrayRegistration">重新检测</a-button>
+                                        </div>
+                                    </template>
+                                </a-alert>
                             </a-form-item>
 
                             <a-form-item label="显示格式">
@@ -51,19 +87,31 @@
                 <a-tab-pane key="api" tab="API 配置">
                     <div class="settings-section">
                         <a-form layout="vertical">
-                            <a-form-item label="天气预报 API (高德地图)">
+                            <a-form-item label="天气数据源">
                                 <template #extra>
-                                    用于同步首页和右侧边栏的天气信息。
-                                    <a href="https://lbs.amap.com/api/webservice/guide/api/weatherinfo" target="_blank"
-                                        >查看高德地图文档</a
-                                    >
+                                    免费天气接口（来源：rinuo.com/free/weather），可随时切换；
+                                    带 🔑 的源需要自行注册并填写 API Key。
                                 </template>
-                                <a-input v-model:value="settingsForm.weatherApi" placeholder="接口地址" />
-                                <a-input
-                                    v-model:value="settingsForm.weatherKey"
-                                    placeholder="API Key"
-                                    style="margin-top: 12px"
-                                />
+                                <a-select
+                                    v-model:value="settingsForm.weatherProvider"
+                                    @change="handleWeatherProviderChange"
+                                    style="width: 100%"
+                                >
+                                    <a-select-option v-for="p in weatherProviders" :key="p.id" :value="p.id">
+                                        {{ p.needKey ? '🔑 ' : '' }}{{ p.name }}
+                                    </a-select-option>
+                                </a-select>
+                                <template v-if="currentProviderNeedKey">
+                                    <a-input
+                                        v-model:value="settingsForm.weatherKeys[settingsForm.weatherProvider]"
+                                        placeholder="请输入该数据源的 API Key"
+                                        style="margin-top: 12px"
+                                        @change="handleWeatherKeyChange"
+                                    />
+                                    <div style="margin-top: 6px; font-size: 12px">
+                                    <a :href="currentProviderDoc" target="_blank">前往 {{ currentProviderName }} 注册获取 Key →</a>
+                                    </div>
+                                </template>
                             </a-form-item>
 
                             <a-divider />
@@ -147,19 +195,72 @@
 </template>
 
 <script setup>
-import { ref, onMounted, createVNode } from 'vue';
+import { ref, onMounted, createVNode, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { LeftOutlined, ExclamationCircleOutlined, CalendarFilled } from '@ant-design/icons-vue';
 import settingsManager from '../utils/settingsManager';
 import scheduleManager from '../utils/scheduleManager';
+import { enable as enableAutostart, disable as disableAutostart, isEnabled as isAutostartEnabled } from '@tauri-apps/plugin-autostart';
+import { invoke } from '@tauri-apps/api/core';
+import { WEATHER_PROVIDERS } from '../utils/weatherManager';
 
 const router = useRouter();
 const activeTab = ref('api');
 
+// 天气数据源切换
+const weatherProviders = WEATHER_PROVIDERS;
+const currentProvider = computed(
+    () => weatherProviders.find((p) => p.id === settingsForm.value.weatherProvider) || weatherProviders[0]
+);
+const currentProviderNeedKey = computed(() => currentProvider.value.needKey);
+const currentProviderDoc = computed(() => currentProvider.value.doc);
+const currentProviderName = computed(() => currentProvider.value.name);
+
+function handleWeatherProviderChange(value) {
+    settingsManager.set('weatherProvider', value);
+    const p = weatherProviders.find((x) => x.id === value);
+    message.success(`天气数据源已切换为 ${p ? p.name : value}`);
+}
+
+function handleWeatherKeyChange() {
+    settingsManager.set('weatherKeys', { ...settingsForm.value.weatherKeys });
+    message.success('天气 API Key 已保存');
+}
+
+// 开机自启动（状态直接读取系统，不存 localStorage）
+const autoLaunch = ref(false);
+const autoLaunchLoading = ref(false);
+
+async function loadAutoLaunchState() {
+    try {
+        autoLaunch.value = await isAutostartEnabled();
+    } catch (e) {
+        console.error('读取自启动状态失败:', e);
+    }
+}
+
+async function handleAutoLaunchToggle(checked) {
+    autoLaunchLoading.value = true;
+    try {
+        if (checked) {
+            await enableAutostart();
+        } else {
+            await disableAutostart();
+        }
+        message.success(checked ? '已开启开机自启动' : '已关闭开机自启动');
+    } catch (e) {
+        console.error('设置自启动失败:', e);
+        autoLaunch.value = !checked; // 失败回滚
+        message.error('设置失败，请重试');
+    } finally {
+        autoLaunchLoading.value = false;
+    }
+}
+
 const settingsForm = ref({
-    weatherApi: '',
-    weatherKey: '',
+    weatherProvider: 'open-meteo',
+    weatherKeys: { openweathermap: '', weatherapi: '', weatherbit: '' },
     zodiacApi: '',
     zodiacKey: '',
     holidayApi: '',
@@ -179,6 +280,67 @@ function saveSettings() {
 function handleTrayToggle(checked) {
     settingsManager.set('showTrayTime', checked);
     message.success(checked ? '状态栏显示已开启' : '状态栏显示已关闭');
+    if (checked) {
+        // ControlCenter 需要一点时间完成登记判定
+        setTimeout(checkTrayRegistration, 1500);
+    } else {
+        trayIssue.value = null;
+    }
+}
+
+// macOS 26（Tahoe）状态栏归属诊断：
+// 状态栏项由 ControlCenter 统一托管，若本应用在"系统设置 → 菜单栏"中被关闭，
+// 或被归属到了另一个已关闭的应用（从终端/IDE 直接启动应用时会发生），状态栏项会创建成功但永远不显示。
+const isMacOS = /Mac OS X|Macintosh/.test(navigator.userAgent);
+const trayIssue = ref(null);
+const trayRepairing = ref(false);
+
+async function checkTrayRegistration() {
+    trayIssue.value = null;
+    if (!isMacOS || !settingsForm.value.showTrayTime) return;
+    try {
+        const reg = await invoke('tray_registration_status');
+        if (!reg || !reg.available) return;
+        if (reg.blocked_by && reg.blocked_by.length > 0) {
+            trayIssue.value = {
+                title: 'macOS 未显示云小历的状态栏项',
+                desc:
+                    `macOS 把云小历的状态栏项归属到了「${reg.blocked_by.join('、')}」，而该应用已被禁止在菜单栏显示，` +
+                    '云小历因此被一并屏蔽（通常是从终端或开发工具直接启动云小历导致）。点击"一键修复"解除关联并重启控制中心；' +
+                    '之后请通过 Finder / 启动台 / Dock 打开云小历。',
+                repairable: true
+            };
+        } else if (reg.allowed === false) {
+            trayIssue.value = {
+                title: 'macOS 未允许云小历在菜单栏显示',
+                desc: '请在 系统设置 → 菜单栏 → "允许在菜单栏中显示" 中开启云小历，或点击"一键修复"。',
+                repairable: true
+            };
+        }
+    } catch (e) {
+        console.error('检测状态栏登记失败:', e);
+    }
+}
+
+async function handleTrayRepair() {
+    trayRepairing.value = true;
+    try {
+        const result = await invoke('repair_tray_registration');
+        message.success(result);
+        setTimeout(checkTrayRegistration, 2000);
+    } catch (e) {
+        message.error(`修复失败：${e}`);
+    } finally {
+        trayRepairing.value = false;
+    }
+}
+
+async function openMenuBarSettings() {
+    try {
+        await invoke('open_menu_bar_settings');
+    } catch (e) {
+        message.error(`打开系统设置失败：${e}`);
+    }
 }
 
 function handleFormatChange(value) {
@@ -240,6 +402,8 @@ function clearCache() {
 
 onMounted(() => {
     loadSettings();
+    loadAutoLaunchState();
+    checkTrayRegistration();
 });
 </script>
 

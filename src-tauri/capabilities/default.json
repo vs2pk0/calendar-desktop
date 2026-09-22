@@ -8,6 +8,8 @@
     "opener:default",
     "core:window:allow-close",
     "core:window:allow-minimize",
+    "core:window:allow-hide",
+    "core:window:allow-show",
     "core:window:allow-maximize",
     "core:window:allow-unmaximize",
     "core:window:allow-is-maximized",
@@ -15,12 +17,25 @@
     "sql:default",
     "sql:allow-execute",
     "sql:allow-select",
+    "autostart:default",
     "http:allow-fetch",
     {
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://restapi.amap.com/*"
+          "url": "https://api.open-meteo.com/*"
+        },
+        {
+          "url": "https://geocoding-api.open-meteo.com/*"
+        },
+        {
+          "url": "https://api.openweathermap.org/*"
+        },
+        {
+          "url": "https://api.weatherapi.com/*"
+        },
+        {
+          "url": "https://api.weatherbit.io/*"
         },
         {
           "url": "https://api.vvhan.com/*"

@@ -96,10 +96,22 @@
         <!-- Subscribed Content Cards -->
         <div class="subscribed-cards">
             <!-- Weather Card -->
-            <div v-if="subscribedIds.includes('weather') && weatherData" class="info-card weather-card">
+            <div
+                v-if="subscribedIds.includes('weather') && weatherData"
+                class="info-card weather-card clickable"
+                @click="showForecastModal"
+            >
                 <div class="card-header">
                     <span class="card-title">天气预报 - {{ weatherData.city }}</span>
-                    <setting-outlined class="card-setting" @click="showWeatherSettings" />
+                    <div class="card-actions">
+                        <reload-outlined
+                            class="card-setting refresh-btn"
+                            :class="{ spinning: weatherLoading }"
+                            title="刷新天气"
+                            @click.stop="fetchWeather(true)"
+                        />
+                        <setting-outlined class="card-setting" title="天气设置" @click.stop="showWeatherSettings" />
+                    </div>
                 </div>
                 <div class="weather-main">
                     <div class="weather-icon">
@@ -123,16 +135,7 @@
                         weatherData.daypower
                     }}级
                 </div>
-                <div
-                    v-if="weatherForecasts.length > 0 && currentDateObj.isSame(dayjs(), 'day')"
-                    class="weather-forecast"
-                >
-                    <div v-for="(fc, index) in weatherForecasts.slice(1, 4)" :key="index" class="forecast-item">
-                        <span>{{ fc.dayweather }}</span
-                        ><br />
-                        <span class="f-day">{{ dayjs(fc.date).format('MM-DD') }}</span>
-                    </div>
-                </div>
+                <div class="weather-more" @click="showForecastModal">点击查看未来预报 ›</div>
             </div>
 
             <!-- World Clock Card -->
@@ -335,23 +338,54 @@
             <div style="padding: 20px 0">
                 <div style="margin-bottom: 12px; font-weight: 500">选择城市：</div>
                 <a-select
-                    v-model:value="weatherCityAdcode"
+                    v-model:value="weatherCityName"
                     style="width: 100%"
                     show-search
                     placeholder="选择一个城市"
-                    option-filter-prop="label"
                 >
-                    <a-select-option
-                        v-for="city in majorCities"
-                        :key="city.adcode"
-                        :value="city.adcode"
-                        :label="city.name"
-                    >
-                        {{ city.name }}
+                    <a-select-option v-for="city in majorCities" :key="city" :value="city">
+                        {{ city }}
                     </a-select-option>
                 </a-select>
                 <div style="margin-top: 12px; font-size: 12px; color: #8c8c8c">
                     提示：目前支持全国主要城市，选择后点击确定刷新天气数据。
+                </div>
+            </div>
+        </a-modal>
+
+        <!-- 未来天气预报弹窗 -->
+        <a-modal
+            v-model:open="forecastModalVisible"
+            :title="`未来天气预报 - ${weatherCityName}`"
+            width="680px"
+            :footer="null"
+        >
+            <div class="forecast-modal-body">
+                <div class="forecast-modal-toolbar">
+                    <div class="forecast-range-switch">
+                        <span :class="{ active: forecastDays === 7 }" @click="forecastDays = 7">7天</span>
+                        <span
+                            v-if="supportedForecastDays >= 14"
+                            :class="{ active: forecastDays === 14 }"
+                            @click="forecastDays = 14"
+                        >14天</span>
+                    </div>
+                    <a-button type="text" size="small" :loading="weatherLoading" @click="fetchWeather(true)">
+                        <template #icon><reload-outlined /></template>
+                        刷新
+                    </a-button>
+                </div>
+                <div v-if="displayForecasts.length === 0" class="forecast-empty">
+                    暂无预报数据，请点击右上角刷新
+                </div>
+                <div v-else class="forecast-grid" :class="{ 'grid-14': forecastDays === 14 }">
+                    <div v-for="fc in displayForecasts" :key="fc.date" class="forecast-cell">
+                        <div class="f-week">{{ formatForecastWeek(fc.date) }}</div>
+                        <div class="f-day">{{ dayjs(fc.date).format('MM-DD') }}</div>
+                        <div class="f-weather">{{ fc.dayweather }}</div>
+                        <div class="f-temp">{{ fc.nighttemp }}° / {{ fc.daytemp }}°</div>
+                        <div v-if="fc.daywind" class="f-wind">{{ fc.daywind }} {{ fc.daypower }}</div>
+                    </div>
                 </div>
             </div>
         </a-modal>
@@ -715,7 +749,8 @@ import {
     EnvironmentOutlined,
     ExclamationCircleOutlined,
     SettingOutlined,
-    EllipsisOutlined
+    EllipsisOutlined,
+    ReloadOutlined
 } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import ScheduleModal from './ScheduleModal.vue';
@@ -840,42 +875,42 @@ async function fetchZodiac() {
 const weatherData = computed(() => weatherManager.selectedWeather.value);
 const weatherForecasts = computed(() => weatherManager.weatherForecasts.value);
 const weatherLoading = ref(false);
-const weatherSettingsVisible = ref(false);
-// AMAP_KEY 已经移至 settingsManager
 
-const weatherCityAdcode = ref(
-    (() => {
-        const saved = localStorage.getItem('weather_adcode');
-        // 高德地图编码为6位
-        return saved && saved.length === 6 ? saved : '110000'; // 默认北京
-    })()
+// 预报弹窗
+const forecastModalVisible = ref(false);
+function showForecastModal() {
+    forecastModalVisible.value = true;
+    // 打开弹窗时若还没有数据则拉取一次
+    if (weatherForecasts.value.length === 0) {
+        fetchWeather();
+    }
+}
+
+// 预报天数切换（7/14 天），默认 7 天
+const forecastDays = ref(7);
+// 当前数据源支持的最大预报天数
+const supportedForecastDays = computed(() => weatherManager.getSupportedDays());
+// 实际展示的预报列表（跳过今天，接口支持多少天就展示多少）
+const displayForecasts = computed(() =>
+    weatherForecasts.value.slice(1, Math.min(forecastDays.value, supportedForecastDays.value) + 1)
 );
+
+const WEEK_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+function formatForecastWeek(dateStr) {
+    const d = dayjs(dateStr);
+    if (d.isSame(dayjs().add(1, 'day'), 'day')) return '明天';
+    return WEEK_NAMES[d.day()];
+}
+const weatherSettingsVisible = ref(false);
+
 const weatherCityName = ref(localStorage.getItem('weather_city_name') || '北京');
 
+// 城市列表（新天气源均按城市名查询，不再使用高德 adcode）
 const majorCities = [
-    { name: '北京', adcode: '110000' },
-    { name: '上海', adcode: '310000' },
-    { name: '广州', adcode: '440100' },
-    { name: '深圳', adcode: '440300' },
-    { name: '杭州', adcode: '330100' },
-    { name: '成都', adcode: '510100' },
-    { name: '武汉', adcode: '420100' },
-    { name: '西安', adcode: '610100' },
-    { name: '南京', adcode: '320100' },
-    { name: '浦口', adcode: '320111' },
-    { name: '重庆', adcode: '500000' },
-    { name: '苏州', adcode: '320500' },
-    { name: '天津', adcode: '120000' },
-    { name: '郑州', adcode: '410100' },
-    { name: '长沙', adcode: '430100' },
-    { name: '福州', adcode: '350100' },
-    { name: '沈阳', adcode: '210100' },
-    { name: '哈尔滨', adcode: '230100' },
-    { name: '济南', adcode: '370100' },
-    { name: '青岛', adcode: '370200' },
-    { name: '大连', adcode: '210200' },
-    { name: '宁波', adcode: '330200' },
-    { name: '厦门', adcode: '350200' }
+    '北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安', '南京', '重庆',
+    '苏州', '天津', '郑州', '长沙', '福州', '沈阳', '哈尔滨', '济南', '青岛', '大连',
+    '宁波', '厦门', '昆明', '合肥', '南昌', '贵阳', '兰州', '太原', '石家庄', '长春',
+    '乌鲁木齐', '呼和浩特', '海口', '三亚', '拉萨', '西宁', '银川', '南宁', '珠海', '佛山'
 ];
 
 function showWeatherSettings() {
@@ -883,12 +918,7 @@ function showWeatherSettings() {
 }
 
 function handleWeatherSettingsOk() {
-    const city = majorCities.find((c) => c.adcode === weatherCityAdcode.value);
-    if (city) {
-        weatherCityName.value = city.name;
-        localStorage.setItem('weather_adcode', city.adcode);
-        localStorage.setItem('weather_city_name', city.name);
-    }
+    localStorage.setItem('weather_city_name', weatherCityName.value);
     weatherSettingsVisible.value = false;
     fetchWeather();
 }
@@ -1128,20 +1158,31 @@ function getLunarFestival(date) {
     return festivals.length > 0 ? festivals.join('、') : null;
 }
 
-// 获取天气数据（使用高德地图天气接口）
-async function fetchWeather() {
+// 获取天气数据（多天气源，按城市名查询）
+async function fetchWeather(manual = false) {
     if (!subscriptionManager.isSubscribed('weather')) return;
     try {
         weatherLoading.value = true;
-        const code = weatherCityAdcode.value;
-        await weatherManager.fetchWeather(code);
+        const result = await weatherManager.fetchWeather(weatherCityName.value);
         updateCurrentDayWeather();
+        if (manual) {
+            if (result) {
+                message.success('天气已更新');
+            } else {
+                message.warning('天气刷新失败，请检查数据源配置');
+            }
+        }
     } catch (error) {
         console.error('Failed to fetch weather data:', error);
+        if (manual) message.error('天气刷新失败');
     } finally {
         weatherLoading.value = false;
     }
 }
+
+// 每 30 分钟自动刷新一次天气
+const WEATHER_AUTO_REFRESH_MS = 30 * 60 * 1000;
+let weatherTimer = null;
 
 // 根据选中的日期更新显示的天气
 function updateCurrentDayWeather() {
@@ -1172,6 +1213,12 @@ onMounted(() => {
     fetchHolidays();
     loadTodaySchedules();
     fetchZodiac();
+    // 默认每 30 分钟自动刷新一次天气
+    weatherTimer = setInterval(() => fetchWeather(false), WEATHER_AUTO_REFRESH_MS);
+});
+
+onUnmounted(() => {
+    if (weatherTimer) clearInterval(weatherTimer);
 });
 
 // 显示新功能的函数
@@ -1245,8 +1292,7 @@ defineExpose({
 
 // 监听日期变化，更新天气和日程
 watch(currentDateObj, () => {
-    // 日期变化时，由于高德预报包含了未来四天，我们先尝试从缓存更新，如果没匹配到再看是否需要重新抓取
-    // 这里简单起见，每次日期变化都检查一下，并尝试抓取（如果今天变了）
+    // 日期变化时先从已缓存的预报中更新，没匹配到再重新抓取
     updateCurrentDayWeather();
     if (!weatherData.value) {
         fetchWeather();
@@ -1341,6 +1387,18 @@ watch(currentDateObj, () => {
 .weather-card {
     background: linear-gradient(to right bottom, #ffffff, #f0f5ff);
 }
+.weather-card.clickable {
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+.weather-card.clickable:hover {
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+}
+.weather-more {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #1890ff;
+}
 .weather-main {
     display: flex;
     align-items: center;
@@ -1365,15 +1423,103 @@ watch(currentDateObj, () => {
     font-size: 12px;
     color: #666;
 }
-.weather-forecast {
+.forecast-modal-body {
+    padding: 8px 0;
+}
+.forecast-modal-toolbar {
     display: flex;
     justify-content: space-between;
-    margin-top: 12px;
-    font-size: 12px;
-    color: #888;
+    align-items: center;
+    margin-bottom: 16px;
 }
-.forecast-item {
+.forecast-range-switch {
+    display: flex;
+    background: #f0f2f5;
+    border-radius: 6px;
+    padding: 2px;
+}
+.forecast-range-switch span {
+    padding: 3px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+    color: #666;
+    transition: all 0.2s;
+    user-select: none;
+}
+.forecast-range-switch span.active {
+    background: #fff;
+    color: #1890ff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.forecast-empty {
     text-align: center;
+    color: #999;
+    padding: 40px 0;
+    font-size: 13px;
+}
+.forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+.forecast-grid.grid-14 {
+    grid-template-columns: repeat(7, 1fr);
+}
+.forecast-cell {
+    text-align: center;
+    padding: 10px 4px;
+    border-radius: 8px;
+    background: #f7f9fc;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+.forecast-cell .f-week {
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
+}
+.forecast-cell .f-day {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 1px;
+}
+.forecast-cell .f-weather {
+    font-size: 12px;
+    color: #555;
+    margin: 6px 0 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.forecast-cell .f-temp {
+    font-size: 12px;
+    color: #1890ff;
+}
+.forecast-cell .f-wind {
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.refresh-btn.spinning {
+    animation: weather-refresh-spin 1s linear infinite;
+    color: #1890ff;
+}
+@keyframes weather-refresh-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .card-header {

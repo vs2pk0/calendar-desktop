@@ -10,8 +10,9 @@
 const STORAGE_KEY = 'calendar_api_settings';
 
 const DEFAULT_SETTINGS = {
-    weatherApi: 'https://restapi.amap.com/v3/weather/weatherInfo',
-    weatherKey: '7d8e35ab2b1b5d9458b5bdaef24621d9',
+    // 天气数据源（多源可切换，见 weatherManager 的 WEATHER_PROVIDERS）
+    weatherProvider: 'open-meteo',
+    weatherKeys: { openweathermap: '', weatherapi: '', weatherbit: '' },
     zodiacApi: 'https://v2.xxapi.cn/api/horoscope',
     zodiacKey: 'free',
     holidayApi: 'https://timor.tech/api/holiday/year',
@@ -34,6 +35,12 @@ class SettingsManager {
                     settings.zodiacApi = DEFAULT_SETTINGS.zodiacApi;
                     settings.zodiacKey = DEFAULT_SETTINGS.zodiacKey;
                     // 保存更新后的设置
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+                }
+                // 迁移逻辑：删除已弃用的高德天气配置，切换到多天气源
+                if ('weatherApi' in settings || 'weatherKey' in settings) {
+                    delete settings.weatherApi;
+                    delete settings.weatherKey;
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
                 }
                 return settings;

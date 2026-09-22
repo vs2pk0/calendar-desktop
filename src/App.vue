@@ -312,17 +312,22 @@ function clearAllNotifs() {
 
 let checkTimer = null;
 let trayTimer = null;
-let lastTrayTitle = '';
+let lastTrayTemplate = null;
+
+// dayjs 格式 token → 占位符（长 token 必须排在短 token 前面）
+// 真正的按秒计时在 Rust 原生后台线程执行：macOS 窗口隐藏后 WebView 会被系统挂起，
+// 前端 setInterval 会停止，导致状态栏时间/日期不走，因此这里只负责同步模板。
+const TRAY_TOKEN_REGEX = /YYYY|YY|dddd|ddd|MM|DD|HH|hh|mm|ss|M|D|H|h|m|s|A|a/g;
 
 async function updateTrayTitle() {
     const showTray = settingsManager.get('showTrayTime');
     const format = settingsManager.get('trayDisplayFormat') || 'M月D日 ddd HH:mm:ss';
 
     if (!showTray) {
-        if (lastTrayTitle !== '') {
+        if (lastTrayTemplate !== '') {
             try {
-                await invoke('update_tray_title', { title: '' });
-                lastTrayTitle = '';
+                await invoke('sync_tray_config', { show: false, template: '' });
+                lastTrayTemplate = '';
             } catch (e) {
                 /* 忽略 */
             }
@@ -330,7 +335,6 @@ async function updateTrayTitle() {
         return;
     }
 
-    const now = dayjs();
     const weather = weatherManager.getToday();
     const weatherCityName = localStorage.getItem('weather_city_name') || '北京';
 
@@ -350,12 +354,14 @@ async function updateTrayTitle() {
         titleFormat = titleFormat.replace(/-\s*$/, '').replace(/^\s*-/, '').trim();
     }
 
+    // 把 dayjs 时间 token 转成 {TOKEN} 占位符，交给 Rust 端每秒渲染
+    const template = titleFormat.replace(TRAY_TOKEN_REGEX, (t) => `{${t}}`);
+
     try {
-        const title = now.format(titleFormat);
-        // 只有当标题真正改变时才调用后端，减少 IPC 开销
-        if (title !== lastTrayTitle) {
-            await invoke('update_tray_title', { title: title });
-            lastTrayTitle = title;
+        // 只有模板变化（设置/天气更新）时才同步，时间走动由 Rust 端负责
+        if (template !== lastTrayTemplate) {
+            await invoke('sync_tray_config', { show: true, template });
+            lastTrayTemplate = template;
         }
     } catch (e) {
         // 忽略非 macOS 平台的错误
@@ -363,8 +369,8 @@ async function updateTrayTitle() {
 }
 
 async function refreshWeather() {
-    const adcode = localStorage.getItem('weather_adcode') || '110000';
-    await weatherManager.fetchWeather(adcode);
+    const city = localStorage.getItem('weather_city_name') || '北京';
+    await weatherManager.fetchWeather(city);
     updateTrayTitle();
 }
 
@@ -427,9 +433,18 @@ async function closeWindow() {
     });
 }
 
+// 是否 macOS 平台
+const isMacOS = /Mac OS X|Macintosh/.test(navigator.userAgent);
+
 async function minimizeWindow() {
     try {
-        await appWindow.minimize();
+        if (isMacOS) {
+            // macOS：隐藏窗口到系统状态栏，同时切为 Accessory 模式（Dock 中彻底隐藏），
+            // 点击状态栏图标或 Dock 图标（Reopen）即可恢复显示
+            await invoke('hide_window_to_tray');
+        } else {
+            await appWindow.minimize();
+        }
     } catch (e) {
         console.error('最小化窗口失败:', e);
     }
@@ -455,6 +470,9 @@ async function toggleMaximize() {
     flex-direction: column;
     height: 100vh;
     background-color: #f5f7fa;
+    /* 配合窗口 transparent 实现四角圆角 */
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 .app-header {

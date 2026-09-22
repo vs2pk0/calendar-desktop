@@ -13,18 +13,20 @@
     "windows": [
       {
         "title": "云小历",
-        "width": 950,
-        "height": 750,
-        "minWidth": 950,
-        "minHeight": 750,
+        "width": 900,
+        "height": 606,
+        "minWidth": 900,
+        "minHeight": 562,
         "decorations": false,
+        "transparent": true,
         "dragDropEnabled": true,
         "resizable": true
       }
     ],
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,

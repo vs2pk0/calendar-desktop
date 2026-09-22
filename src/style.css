@@ -4,12 +4,15 @@ html, body {
     height: 100%;
     overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-    'Noto Color Emoji';
+        'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+    /* 窗口整体透明，配合 .app-layout 圆角实现四角圆润的 macOS 窗口 */
+    background: transparent;
 }
 
 #app {
     height: 100%;
+    background: transparent;
 }
 
 /* 优化滚动条样式 */
@@ -41,4 +44,21 @@ html, body {
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/*
+ * macOS 透明窗口（macOSPrivateApi + transparent）下 WKWebView 的合成层渲染 bug：
+ * 带 CSS 动画 / transform 的悬浮层（Modal、Popover、下拉菜单等）可能完全不绘制，
+ * 且关闭动画卡住会导致遮罩层残留、整个页面无法点击。
+ * 这里禁用 antd 全部浮层过渡动画，直接呈现最终状态。
+ * （这些类名后缀只在 antd 过渡动画期间挂载，不影响组件常态样式与 hover 效果）
+ */
+[class*='-enter-prepare'],
+[class*='-enter-start'],
+[class*='-enter-active'],
+[class*='-leave-active'] {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
 }
